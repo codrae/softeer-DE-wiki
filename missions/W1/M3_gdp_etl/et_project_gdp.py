@@ -11,7 +11,11 @@ def log(message,):
     시간은 Year-Monthname-Day-Hour-Minute-Second 포맷 사용
     :return:
     """
-
+    ts = datetime.now().strftime("%Y-%b-%d-%H-%M-%S")
+    line = f"{ts}\t{message}"
+    with open("log.txt", "a", encoding="utf-8") as f:
+        f.write(line + "\n")
+    print(line)
 
 def init():
     """
