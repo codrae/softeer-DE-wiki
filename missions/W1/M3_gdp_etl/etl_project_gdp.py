@@ -1,7 +1,7 @@
 import pandas as pd
 from bs4 import BeautifulSoup
 import requests
-import datetime
+from datetime import datetime
 
 source_link = "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_%28nominal%29"
 
@@ -13,7 +13,7 @@ def log(message,):
     """
     ts = datetime.now().strftime("%Y-%b-%d-%H-%M-%S")
     line = f"{ts}\t{message}"
-    with open("log.txt", "a", encoding="utf-8") as f:
+    with open("etl_project_log.txt", "a", encoding="utf-8") as f:
         f.write(line + "\n")
     print(line)
 
