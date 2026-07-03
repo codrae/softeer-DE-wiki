@@ -13,11 +13,10 @@ GDP_JSON = "Countries_by_GDP.json"
 REGION_JSON = "Countries_by_Region.json"
 GDP_PROCESSED_JSON = "Countries_by_GDP_processed.json"
 
-def log(message,):
+def log(message):
     """
-    time,log 형식으로 기록
-    시간은 Year-Monthname-Day-Hour-Minute-Second 포맷 사용
-    :return:
+    'timestamp<TAB>message' 형식으로 로그 파일과 화면에 동시 기록.
+    시간 포맷: Year-Monthname-Day-Hour-Minute-Second.
     """
     ts = datetime.now().strftime("%Y-%b-%d-%H-%M-%S")
     line = f"{ts}\t{message}"
@@ -27,12 +26,11 @@ def log(message,):
 
 def init():
     """
-    초기 데이터 테이블 생성
-    Region별 국가 정보 삽입 (메타 데이터)
-    :return:
+    초기 GDP 테이블(빈 스캐폴드) 생성 + 각주 없는 리전의 회원국 메타데이터 적재.
+    :return: (빈 GDP df[Country, GDP_USD_billion], 리전 매핑 df[Country, Region])
     """
+    log("init 시작")
     df_gdp = pd.DataFrame(columns=["Country", "GDP_USD_billion"])
-    df_region = pd.DataFrame(columns=["Country", "Region"])
 
     # 위키 표에 각주(<ref group="r">)가 없는 리전은 회원국 명단을 미리 적재.
     # 국가명은 메인 GDP 표의 표기 그대로 사용해야 이후 join이 됨(예: DR Congo, Ivory Coast).
@@ -74,6 +72,7 @@ def init():
     rows = [(c, r) for r, members in predefined.items() for c in members]
     df_region = pd.DataFrame(rows, columns=["Country", "Region"])
 
+    log(f"init 완료: {len(predefined)}개 리전 / {len(df_region)}개 (국가,리전) 매핑")
     return df_gdp, df_region
 
 def _get_soup():
@@ -118,14 +117,24 @@ def extract_gdp(soup=None):
     log(f"extract_gdp 완료: {len(records)}개국 -> {GDP_JSON}")
     return records
 
+# 메인 표와 각주의 위키 문서명이 달라 슬러그가 어긋나는 예외를 명시적으로 통일한다.
+# (blanket 정규화 대신 알려진 케이스만 하드코딩)
+_SLUG_ALIASES = {
+    "The_Bahamas": "Bahamas",         # 메인 Economy_of_The_Bahamas / 각주 ..._the_Bahamas
+    "The_Gambia": "Gambia",           # 위와 동일한 The/the 대소문자 차이
+    "Côte_d'Ivoire": "Ivory_Coast",   # 각주 Côte d'Ivoire / 메인 Ivory Coast (다른 문서명)
+}
+
 def _country_slug(href):
-    """위키 문서 href -> 국가 슬러그. 접두사를 벗겨 문서명 불규칙을 흡수한다.
+    """위키 문서 href -> 국가 슬러그. 접두사를 벗겨 문서명 불규칙을 흡수하고,
+    알려진 표기 예외(_SLUG_ALIASES)를 통일한다.
     예: 'Economy_of_South_Korea' -> 'South_Korea', 'GDP_of_Romania' -> 'Romania'."""
     slug = href.rsplit("/wiki/", 1)[-1]
     for prefix in ("Economy_of_the_", "Economy_of_", "GDP_of_the_", "GDP_of_"):
         if slug.startswith(prefix):
-            return slug[len(prefix):]
-    return slug
+            slug = slug[len(prefix):]
+            break
+    return _SLUG_ALIASES.get(slug, slug)
 
 def extract_region(soup=None, region_seed=None):
     """
@@ -283,11 +292,9 @@ def load():
 
 def run_pipe():
     """
-    스케쥴링을 통해 매년 2회 자료를 제공하는 시점에 맞춰 스케줄링.
-    혹은 전체 파이프라인을 재실행하여 정보를 업데이트.
-
-    전체 파이프라인: init -> extract -> transform -> load
-    :return:
+    전체 ETL 파이프라인 실행: init -> extract -> transform -> load.
+    자료 갱신 주기(연 2회)에 맞춰 스케줄링하거나 수동 재실행해 최신화한다.
+    (스케줄링은 외부 cron 등이 이 함수를 호출하는 방식 — 미구현)
     """
     log("===== run_pipe 시작 =====")
     _, df_region = init()          # 하드코딩 리전 메타데이터 seed
@@ -295,3 +302,7 @@ def run_pipe():
     transform()                    # 정제·단위통일·정렬·조인 -> STAGING
     load()                         # 100B 국가 / Region별 top5 평균 출력
     log("===== run_pipe 종료 =====")
+
+
+if __name__ == "__main__":
+    run_pipe()
