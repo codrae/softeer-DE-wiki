@@ -23,6 +23,50 @@ def init():
     Region별 국가 정보 삽입 (메타 데이터)
     :return:
     """
+    df_gdp = pd.DataFrame(columns=["Country", "GDP_USD_billion"])
+    df_region = pd.DataFrame(columns=["Country", "Region"])
+
+    # 위키 표에 각주(<ref group="r">)가 없는 리전은 회원국 명단을 미리 적재.
+    # 국가명은 메인 GDP 표의 표기 그대로 사용해야 이후 join이 됨(예: DR Congo, Ivory Coast).
+    # 기준: IMF WEO 2025 April 회원국 정의.
+    predefined = {
+        "European Union": [
+            "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus",
+            "Czech Republic", "Denmark", "Estonia", "Finland", "France",
+            "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia",
+            "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland",
+            "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden",
+        ],  # 27개국
+        "Euro Area": [
+            "Austria", "Belgium", "Croatia", "Cyprus", "Estonia", "Finland",
+            "France", "Germany", "Greece", "Ireland", "Italy", "Latvia",
+            "Lithuania", "Luxembourg", "Malta", "Netherlands", "Portugal",
+            "Slovakia", "Slovenia", "Spain",
+        ],  # 20개국
+        "Latin America & Caribbean": [
+            "Brazil", "Mexico", "Colombia", "Peru", "Chile", "Argentina",
+            "Ecuador", "Bolivia", "Paraguay", "Uruguay", "Venezuela",
+            "Costa Rica", "Guatemala", "Dominican Republic", "Honduras",
+            "El Salvador", "Nicaragua", "Panama", "Guyana", "Suriname",
+            "Haiti", "Jamaica", "Trinidad and Tobago", "Bahamas", "Barbados",
+            "Grenada", "Saint Lucia", "Saint Vincent and the Grenadines",
+            "Antigua and Barbuda", "Saint Kitts and Nevis", "Dominica",
+        ],  # 31개국
+        "Sub-Saharan Africa": [
+            "South Africa", "Nigeria", "Kenya", "Ethiopia", "Ghana", "Zambia",
+            "Zimbabwe", "Tanzania", "Uganda", "Cameroon", "Angola", "DR Congo",
+            "Ivory Coast", "Senegal", "Mali", "Burkina Faso", "Niger", "Chad",
+            "Benin", "Gabon", "Congo", "Sierra Leone", "Liberia", "Mozambique",
+            "Rwanda", "Namibia", "Madagascar", "Malawi", "Botswana", "Eswatini",
+            "Lesotho", "Guinea", "Guinea-Bissau", "Mauritius", "Seychelles",
+            "Comoros", "Togo", "Equatorial Guinea", "Burundi",
+            "Central African Republic",
+        ],  # 40개국
+    }
+    rows = [(c, r) for r, members in predefined.items() for c in members]
+    df_region = pd.DataFrame(rows, columns=["Country", "Region"])
+
+    return df_gdp, df_region
 
 def extract():
     """
