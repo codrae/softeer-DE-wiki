@@ -247,23 +247,51 @@ def transform():
     log(f"transform 완료: {len(merged)}행 -> {GDP_PROCESSED_JSON}")
     return merged
 
+GDP_THRESHOLD_BILLION = 100
+
 def load():
     """
-    최신 정보로 데이터 업데이트
-    이후 GDP가 100B USD 이상이 되는 국가만을 구해서 화면에 출력
-    각 Region별로 top5 국가의 GDP 평균을 구해서 화면에 출력
-    :return:
+    STAGING(Countries_by_GDP_processed.json)을 읽어(=최신 정보 반영)
+    - GDP 100B USD 이상 국가를 화면에 출력
+    - 각 Region별 top5 국가의 GDP 평균을 화면에 출력
+    :return: (100B 이상 국가 df, Region별 top5 평균 df)
     """
+    log("load 시작")
+    df = pd.read_json(GDP_PROCESSED_JSON)
+
+    # (1) GDP 100B 이상 국가 — long-format이라 국가 중복 제거 후 필터
+    over = df.drop_duplicates("Country").dropna(subset=["GDP_USD_billion"])
+    over = over[over["GDP_USD_billion"] >= GDP_THRESHOLD_BILLION]
+    over = over.sort_values("GDP_USD_billion", ascending=False).reset_index(drop=True)
+    print(f"\n=== GDP {GDP_THRESHOLD_BILLION}B USD 이상 국가 ({len(over)}개국) ===")
+    for rank, row in enumerate(over.itertuples(index=False), 1):
+        print(f"{rank:3}. {row.Country:32} {row.GDP_USD_billion:>12,.2f} B")
+
+    # (2) Region별 top5 국가 GDP 평균 (overlap 허용: 한 국가가 여러 리전 top5에 기여)
+    avg_rows = []
+    for region, g in df.dropna(subset=["GDP_USD_billion"]).groupby("Region"):
+        top5 = g.nlargest(5, "GDP_USD_billion")
+        avg_rows.append((region, round(top5["GDP_USD_billion"].mean(), 2), len(top5)))
+    region_avg = pd.DataFrame(avg_rows, columns=["Region", "Top5_avg_GDP_billion", "n"])
+    region_avg = region_avg.sort_values("Top5_avg_GDP_billion", ascending=False).reset_index(drop=True)
+    print(f"\n=== Region별 top5 국가 GDP 평균 ===")
+    for row in region_avg.itertuples(index=False):
+        print(f"  {row.Region:42} {row.Top5_avg_GDP_billion:>12,.2f} B  (top{row.n})")
+
+    log(f"load 완료: 100B이상 {len(over)}개국, {len(region_avg)}개 리전 집계")
+    return over, region_avg
 
 def run_pipe():
     """
     스케쥴링을 통해 매년 2회 자료를 제공하는 시점에 맞춰 스케줄링.
     혹은 전체 파이프라인을 재실행하여 정보를 업데이트.
 
-    현재 구현: init -> extract (transform/load는 이후 단계)
+    전체 파이프라인: init -> extract -> transform -> load
     :return:
     """
     log("===== run_pipe 시작 =====")
     _, df_region = init()          # 하드코딩 리전 메타데이터 seed
-    extract(df_region)             # 국가 GDP + 리전 매핑 (1회 fetch로 둘 다)
-    log("===== run_pipe 종료 (extract 단계까지) =====")
+    extract(df_region)             # 국가 GDP + 리전 매핑 (1회 fetch로 둘 다) -> RAW
+    transform()                    # 정제·단위통일·정렬·조인 -> STAGING
+    load()                         # 100B 국가 / Region별 top5 평균 출력
+    log("===== run_pipe 종료 =====")
