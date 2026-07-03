@@ -9,9 +9,9 @@ source_link = "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_%28nominal
 
 # Wikipedia는 기본 python-requests User-Agent를 403으로 차단하므로 UA를 명시한다.
 HEADERS = {"User-Agent": "Mozilla/5.0 (softeer-de-bootcamp; educational use)"}
-GDP_JSON = "Countries_by_GDP.json"
+RAW_JSON = "raw.json"                     # extract: 추출한 원본(raw) 저장
+GDP_JSON = "Countries_by_GDP.json"        # transform: 처리 완료(정제·단위통일) 데이터 저장
 REGION_JSON = "Countries_by_Region.json"
-GDP_PROCESSED_JSON = "Countries_by_GDP_processed.json"
 
 def log(message):
     """
@@ -84,7 +84,7 @@ def _get_soup():
 def extract_gdp(soup=None):
     """
     wiki를 통해서 국가별 GDP정보를 추출 (IMF 추정치 열, 단위 million USD)
-    RAW 상태(콤마 포함 문자열) 그대로 Countries_by_GDP.json 에 저장.
+    RAW 상태(콤마 포함 문자열) 그대로 raw.json 에 저장.
     콤마 제거·결측 판정·형변환·단위통일은 transform 담당(정제 로직 분리).
     :param soup: 공유 BeautifulSoup. None이면 직접 fetch(단독 실행용).
     :return: [{"country": str, "gdp_mil_usd": str}, ...]
@@ -112,9 +112,9 @@ def extract_gdp(soup=None):
             "gdp_mil_usd": cells[1].get_text(strip=True),
         })
 
-    with open(GDP_JSON, "w", encoding="utf-8") as f:
+    with open(RAW_JSON, "w", encoding="utf-8") as f:
         json.dump(records, f, ensure_ascii=False, indent=2)
-    log(f"extract_gdp 완료: {len(records)}개국 -> {GDP_JSON}")
+    log(f"extract_gdp 완료: {len(records)}개국 -> {RAW_JSON}")
     return records
 
 # 메인 표와 각주의 위키 문서명이 달라 슬러그가 어긋나는 예외를 명시적으로 통일한다.
@@ -128,7 +128,8 @@ _SLUG_ALIASES = {
 def _country_slug(href):
     """위키 문서 href -> 국가 슬러그. 접두사를 벗겨 문서명 불규칙을 흡수하고,
     알려진 표기 예외(_SLUG_ALIASES)를 통일한다.
-    예: 'Economy_of_South_Korea' -> 'South_Korea', 'GDP_of_Romania' -> 'Romania'."""
+    예: 'Economy_of_
+    South_Korea' -> 'South_Korea', 'GDP_of_Romania' -> 'Romania'."""
     slug = href.rsplit("/wiki/", 1)[-1]
     for prefix in ("Economy_of_the_", "Economy_of_", "GDP_of_the_", "GDP_of_"):
         if slug.startswith(prefix):
@@ -228,57 +229,54 @@ def _to_billion(text):
 
 def transform():
     """
-    RAW(Countries_by_GDP.json) + 리전 매핑(Countries_by_Region.json)을 읽어
-    STAGING(Countries_by_GDP_processed.json)을 만든다.
+    RAW(raw.json)를 읽어 처리 완료 데이터(Countries_by_GDP.json)를 만든다.
     - GDP 정제: 연도주석/콤마 제거, 결측 판정
     - 단위통일: million -> 1B USD, 소수점 2자리
     - GDP 내림차순 정렬
-    - 리전 조인(long-format, 결정 a): 다리전 국가는 리전 수만큼 행 복제
-    :return: 병합된 DataFrame [Country, GDP_USD_billion, Region]
+    리전 매핑은 조인하지 않고 Countries_by_Region.json에 별도 보관(조인은 load 담당).
+    :return: 처리완료 DataFrame [Country, GDP_USD_billion] (국가 유일)
     """
     log("transform 시작")
-    with open(GDP_JSON, encoding="utf-8") as f:
+    with open(RAW_JSON, encoding="utf-8") as f:
         gdp = json.load(f)
-    with open(REGION_JSON, encoding="utf-8") as f:
-        region = json.load(f)
 
     df = pd.DataFrame(gdp).rename(columns={"country": "Country"})
     df["GDP_USD_billion"] = df["gdp_mil_usd"].map(_to_billion)
     df = df[["Country", "GDP_USD_billion"]]
-
-    df_region = pd.DataFrame(region).rename(columns={"country": "Country", "region": "Region"})
-    merged = df.merge(df_region, on="Country", how="left")
-    merged = merged.sort_values(
+    df = df.sort_values(
         "GDP_USD_billion", ascending=False, na_position="last"
     ).reset_index(drop=True)
 
-    merged.to_json(GDP_PROCESSED_JSON, orient="records", force_ascii=False, indent=2)
-    log(f"transform 완료: {len(merged)}행 -> {GDP_PROCESSED_JSON}")
-    return merged
+    df.to_json(GDP_JSON, orient="records", force_ascii=False, indent=2)
+    log(f"transform 완료: {len(df)}개국 -> {GDP_JSON}")
+    return df
 
 GDP_THRESHOLD_BILLION = 100
 
 def load():
     """
-    STAGING(Countries_by_GDP_processed.json)을 읽어(=최신 정보 반영)
+    처리완료 데이터(Countries_by_GDP.json)와 리전 매핑(Countries_by_Region.json)을 읽어
     - GDP 100B USD 이상 국가를 화면에 출력
-    - 각 Region별 top5 국가의 GDP 평균을 화면에 출력
+    - 각 Region별 top5 국가의 GDP 평균을 화면에 출력 (두 파일을 조인)
     :return: (100B 이상 국가 df, Region별 top5 평균 df)
     """
     log("load 시작")
-    df = pd.read_json(GDP_PROCESSED_JSON)
+    df = pd.read_json(GDP_JSON)                       # Country, GDP_USD_billion (국가 유일)
+    df_region = pd.read_json(REGION_JSON).rename(
+        columns={"country": "Country", "region": "Region"})
 
-    # (1) GDP 100B 이상 국가 — long-format이라 국가 중복 제거 후 필터
-    over = df.drop_duplicates("Country").dropna(subset=["GDP_USD_billion"])
+    # (1) GDP 100B 이상 국가
+    over = df.dropna(subset=["GDP_USD_billion"])
     over = over[over["GDP_USD_billion"] >= GDP_THRESHOLD_BILLION]
     over = over.sort_values("GDP_USD_billion", ascending=False).reset_index(drop=True)
     print(f"\n=== GDP {GDP_THRESHOLD_BILLION}B USD 이상 국가 ({len(over)}개국) ===")
     for rank, row in enumerate(over.itertuples(index=False), 1):
         print(f"{rank:3}. {row.Country:32} {row.GDP_USD_billion:>12,.2f} B")
 
-    # (2) Region별 top5 국가 GDP 평균 (overlap 허용: 한 국가가 여러 리전 top5에 기여)
+    # (2) Region별 top5 국가 GDP 평균: 리전 매핑에 GDP를 조인(overlap 허용)
+    merged = df_region.merge(df, on="Country", how="left").dropna(subset=["GDP_USD_billion"])
     avg_rows = []
-    for region, g in df.dropna(subset=["GDP_USD_billion"]).groupby("Region"):
+    for region, g in merged.groupby("Region"):
         top5 = g.nlargest(5, "GDP_USD_billion")
         avg_rows.append((region, round(top5["GDP_USD_billion"].mean(), 2), len(top5)))
     region_avg = pd.DataFrame(avg_rows, columns=["Region", "Top5_avg_GDP_billion", "n"])

@@ -12,6 +12,7 @@ load 단계만 SQLite 적재 + SQL 질의 출력으로 대체한 버전.
   - Region별 top5 국가 GDP 평균
 """
 import sqlite3
+import pandas as pd
 import etl_project_gdp as etl   # 기존 ETL 재사용 (init/extract/transform/log/상수)
 
 DB_NAME = "World_Economies.db"
@@ -19,24 +20,22 @@ GDP_TABLE = "Countries_by_GDP"
 REGION_TABLE = "Countries_by_Region"
 GDP_THRESHOLD_BILLION = etl.GDP_THRESHOLD_BILLION  # 100
 
-def load_to_db(merged):
+def load_to_db(gdp_df):
     """
-    transform 결과(merged long df)를 SQLite 두 테이블로 적재.
-    - Countries_by_GDP    : 국가 유일 (Country, GDP_USD_billion)
+    처리완료 GDP(gdp_df)와 리전 매핑(Countries_by_Region.json)을 SQLite 두 테이블로 적재.
+    - Countries_by_GDP    : (Country, GDP_USD_billion)  ← 요구 테이블
     - Countries_by_Region : (Country, Region) 매핑 (region top5 조인용)
-    :param merged: etl.transform()이 반환한 [Country, GDP_USD_billion, Region] df
+    :param gdp_df: etl.transform()이 반환한 [Country, GDP_USD_billion] df (국가 유일)
     :return: 열린 sqlite3 Connection
     """
     etl.log("load(SQL) 시작")
-    # merged는 long-format(다리전 국가 복제)이므로 테이블별로 중복 제거
-    gdp = merged[["Country", "GDP_USD_billion"]].drop_duplicates("Country").reset_index(drop=True)
-    region = merged[["Country", "Region"]].drop_duplicates().reset_index(drop=True)
+    region = pd.read_json(etl.REGION_JSON).rename(columns={"country": "Country", "region": "Region"})
 
     conn = sqlite3.connect(DB_NAME)
-    gdp.to_sql(GDP_TABLE, conn, if_exists="replace", index=False)
+    gdp_df.to_sql(GDP_TABLE, conn, if_exists="replace", index=False)
     region.to_sql(REGION_TABLE, conn, if_exists="replace", index=False)
     conn.commit()
-    etl.log(f"load(SQL) 완료: {GDP_TABLE} {len(gdp)}행 / {REGION_TABLE} {len(region)}행 -> {DB_NAME}")
+    etl.log(f"load(SQL) 완료: {GDP_TABLE} {len(gdp_df)}행 / {REGION_TABLE} {len(region)}행 -> {DB_NAME}")
     return conn
 
 def report_over_threshold(conn):
@@ -86,8 +85,8 @@ def run_pipe():
     etl.log("===== run_pipe(SQL) 시작 =====")
     _, df_region = etl.init()
     etl.extract(df_region)
-    merged = etl.transform()
-    conn = load_to_db(merged)
+    gdp_df = etl.transform()
+    conn = load_to_db(gdp_df)
     report_over_threshold(conn)
     report_region_top5(conn)
     conn.close()
