@@ -36,3 +36,4 @@ derby.log
 /missions/W1/M3_gdp_etl/Countries_by_GDP.json
 /missions/W1/M3_gdp_etl/etl_project_log.txt
 /missions/W1/M3_gdp_etl/Countries_by_GDP_processed.json
+/missions/W1/M3_gdp_etl/World_Economies.db
