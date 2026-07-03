@@ -1,4 +1,5 @@
 import json
+import re
 import pandas as pd
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +11,7 @@ source_link = "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_%28nominal
 HEADERS = {"User-Agent": "Mozilla/5.0 (softeer-de-bootcamp; educational use)"}
 GDP_JSON = "Countries_by_GDP.json"
 REGION_JSON = "Countries_by_Region.json"
+GDP_PROCESSED_JSON = "Countries_by_GDP_processed.json"
 
 def log(message,):
     """
@@ -206,13 +208,44 @@ def extract(region_seed=None):
     extract_region(soup, region_seed)
     log("extract 완료")
 
+def _to_billion(text):
+    """RAW GDP 문자열 -> billion USD(float, 2자리). 결측/파싱불가 -> None.
+    예: '32,383,920' -> 32383.92, '34,497 (2025)' -> 34.5, '—N/a' -> None."""
+    text = re.sub(r"\(.*?\)", "", text)      # 연도주석 '(2025)' 제거
+    text = text.replace(",", "").strip()     # 천단위 콤마 제거
+    if not re.fullmatch(r"\d+(\.\d+)?", text):
+        return None                          # 결측('—N/a')·비수치 -> None
+    return round(float(text) / 1000, 2)      # million -> billion
+
 def transform():
     """
-    GDP가 높은 순서대로 정렬
-    GDP의 단위를 1B USD로 통일
-    GDP값은 소수점 2자리까지만 표시
-    :return:
+    RAW(Countries_by_GDP.json) + 리전 매핑(Countries_by_Region.json)을 읽어
+    STAGING(Countries_by_GDP_processed.json)을 만든다.
+    - GDP 정제: 연도주석/콤마 제거, 결측 판정
+    - 단위통일: million -> 1B USD, 소수점 2자리
+    - GDP 내림차순 정렬
+    - 리전 조인(long-format, 결정 a): 다리전 국가는 리전 수만큼 행 복제
+    :return: 병합된 DataFrame [Country, GDP_USD_billion, Region]
     """
+    log("transform 시작")
+    with open(GDP_JSON, encoding="utf-8") as f:
+        gdp = json.load(f)
+    with open(REGION_JSON, encoding="utf-8") as f:
+        region = json.load(f)
+
+    df = pd.DataFrame(gdp).rename(columns={"country": "Country"})
+    df["GDP_USD_billion"] = df["gdp_mil_usd"].map(_to_billion)
+    df = df[["Country", "GDP_USD_billion"]]
+
+    df_region = pd.DataFrame(region).rename(columns={"country": "Country", "region": "Region"})
+    merged = df.merge(df_region, on="Country", how="left")
+    merged = merged.sort_values(
+        "GDP_USD_billion", ascending=False, na_position="last"
+    ).reset_index(drop=True)
+
+    merged.to_json(GDP_PROCESSED_JSON, orient="records", force_ascii=False, indent=2)
+    log(f"transform 완료: {len(merged)}행 -> {GDP_PROCESSED_JSON}")
+    return merged
 
 def load():
     """
