@@ -15,11 +15,11 @@ GDP_PROCESSED_JSON = "Countries_by_GDP_processed.json"
 
 def log(message):
     """
-    'timestamp<TAB>message' 형식으로 로그 파일과 화면에 동시 기록.
+    'time, log' 형식(쉼표 구분)으로 로그 파일과 화면에 동시 기록.
     시간 포맷: Year-Monthname-Day-Hour-Minute-Second.
     """
     ts = datetime.now().strftime("%Y-%b-%d-%H-%M-%S")
-    line = f"{ts}\t{message}"
+    line = f"{ts}, {message}"
     with open("etl_project_log.txt", "a", encoding="utf-8") as f:
         f.write(line + "\n")
     print(line)
