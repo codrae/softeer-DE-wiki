@@ -37,3 +37,4 @@ derby.log
 /missions/W1/M3_gdp_etl/etl_project_log.txt
 /missions/W1/M3_gdp_etl/raw.json
 /missions/W1/M3_gdp_etl/World_Economies.db
+/missions/W2/M5_Sentiment_Analysis/kakao_goods/etl/keywords_by_character.json
