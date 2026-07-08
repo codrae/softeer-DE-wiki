@@ -1,0 +1,8 @@
+jupyterlab==4.2.5
+pandas
+numpy
+matplotlib
+scrapy
+scrapy-playwright
+nest-asyncio
+wordcloud
