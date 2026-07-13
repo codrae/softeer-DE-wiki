@@ -12,4 +12,8 @@
     <name>dfs.datanode.data.dir</name>
     <value>/hadoop/dfs/data</value>
   </property>
+  <property>
+  <name>dfs.namenode.secondary.http-address</name>
+  <value>localhost:50090</value>
+  </property>
 </configuration>
