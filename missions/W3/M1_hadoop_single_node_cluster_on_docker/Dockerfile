@@ -15,13 +15,13 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     vim \
     # 패키지 인덱스 캐시 삭제
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV HADOOP_VERSION=2.10.2
 RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz \
     && tar -xzf hadoop-${HADOOP_VERSION}.tar.gz -C /opt/ \
     && mv /opt/hadoop-${HADOOP_VERSION} /opt/hadoop \
-    && rm hadoop-${HADOOP_VERSION}.tar.gz \
+    && rm hadoop-${HADOOP_VERSION}.tar.gz
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 ENV HADOOP_HOME=/opt/hadoop
@@ -48,6 +48,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Hadoop 3.x라면 50070 대신 9870
-EXPOSE 500770 8088 19888
+EXPOSE 50070 8088 19888
 
 ENTRYPOINT ["/entrypoint.sh"]
