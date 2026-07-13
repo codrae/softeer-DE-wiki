@@ -37,7 +37,17 @@ RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa \
 
 RUN echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
 
+# 설정 4종 파일 복사
 COPY core-site.xml /opt/hadoop/etc/hadoop/core-site.xml
 COPY hdfs-site.xml /opt/hadoop/etc/hadoop/hdfs-site.xml
 COPY mapred-site.xml /opt/hadoop/etc/hadoop/mapred-site.xml
 COPY yarn-site.xml /opt/hadoop/etc/hadoop/yarn-site.xml
+
+# 컨테이너 실행시 entrypoint.sh 실행
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Hadoop 3.x라면 50070 대신 9870
+EXPOSE 500770 8088 19888
+
+ENTRYPOINT ["/entrypoint.sh"]
