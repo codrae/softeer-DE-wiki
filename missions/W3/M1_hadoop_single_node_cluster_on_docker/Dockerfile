@@ -36,3 +36,8 @@ RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa \
     && echo "    StrictHostKeyChecking no" >> ~/.ssh/config
 
 RUN echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
+
+COPY core-site.xml /opt/hadoop/etc/hadoop/core-site.xml
+COPY hdfs-site.xml /opt/hadoop/etc/hadoop/hdfs-site.xml
+COPY mapred-site.xml /opt/hadoop/etc/hadoop/mapred-site.xml
+COPY yarn-site.xml /opt/hadoop/etc/hadoop/yarn-site.xml
