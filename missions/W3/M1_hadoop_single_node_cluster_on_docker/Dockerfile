@@ -27,3 +27,12 @@ ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 ENV HADOOP_HOME=/opt/hadoop
 # hadoop, hdfs와 같은 명령어를 쉘 어디서나 실행 가능하도록
 ENV PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+
+RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa \
+    && cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys \
+    && chmod 0600 ~/.ssh/authorized_keys \
+    # 이후 host key를 신뢰하겠습니까 라는 프롬프트에 대한 답을 미리 적어놓기 (자동화) \
+    && echo "Host localhost" >> ~/.ssh/config \
+    && echo "    StrictHostKeyChecking no" >> ~/.ssh/config
+
+RUN echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
