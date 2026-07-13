@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  hadoop:
+    build: .
+    container_name: hadoop-single-node
+    ports:
+      - "50070:50070"   # namenode 웹 UI
+      - "8088:8088"     # resource manager 웹 UI
+      - "19888:19888"   # job history server
+      - "9000:9000"     # HDFS RPC (core-site.xml의 fs.defaultFS 포트)
+    volumes:
+      - hadoop-namenode:/hadoop/dfs/name
+      - hadoop-datanode:/hadoop/dfs/data
+
+volumes:
+  hadoop-namenode:
+  hadoop-datanode:
