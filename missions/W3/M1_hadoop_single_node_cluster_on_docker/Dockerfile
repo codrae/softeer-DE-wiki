@@ -23,7 +23,7 @@ RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/
     && mv /opt/hadoop-${HADOOP_VERSION} /opt/hadoop \
     && rm hadoop-${HADOOP_VERSION}.tar.gz
 
-ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-arm64
 ENV HADOOP_HOME=/opt/hadoop
 # hadoop, hdfs와 같은 명령어를 쉘 어디서나 실행 가능하도록
 ENV PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
