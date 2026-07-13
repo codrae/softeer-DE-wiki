@@ -8,7 +8,7 @@ import re
 from collections import Counter
 
 INPUT_PATH = "../../../../../data/sentiment140/kakao_goods/reviews.jsonl"
-OUTPUT_PATH = "keywords_by_character.json"
+OUTPUT_PATH = "../../../../../data/sentiment140/kakao_goods/keywords_by_character.json"
 TOP_N = 50
 
 # 캐릭터는 별도 컬럼이 없으므로 상품명(product_name)에 이름이 포함되는지로 판별한다.
