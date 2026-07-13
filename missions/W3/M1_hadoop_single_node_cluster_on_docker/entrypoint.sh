@@ -18,5 +18,7 @@ start-dfs.sh
 # 4. YARN 데몬 시작 (resource manager, node manager)
 start-yarn.sh
 
+mr-jobhistory-daemon.sh start historyserver
+
 # 5. 컨테이너가 종료되지 않도록 foreground 프로세스 유지
 tail -f /dev/null
