@@ -2,6 +2,7 @@ FROM ubuntu:20.04
 
 # 타임존/apt 대화형 프롬프트 방지
 ENV DEBIAN_FRONTEND=noninteractive
+ENV USER=root
 
 # 패키지 설치
 # - openjdk-8-jdk: Hadoop 2.10.2 구동에 필요한 JVM
