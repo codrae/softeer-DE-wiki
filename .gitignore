@@ -40,3 +40,6 @@ derby.log
 /data/sentiment140/kakao_goods/keywords_by_character.json
 /missions/W3/M3_wordcount_using_mapreduce/wordcount_result.txt
 /missions/W3/M5_Average_Rating_of_Movies_using_MapReduce/avg_ratings_result/
+/missions/W3/M6_Amazon_Product_Review_using_MapReduce/hdfs_result.tsv
+/missions/W3/M6_Amazon_Product_Review_using_MapReduce/hdfs_result_sorted.tsv
+/missions/W3/M6_Amazon_Product_Review_using_MapReduce/local_result.tsv
