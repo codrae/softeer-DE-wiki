@@ -1,0 +1,65 @@
+services:
+  master:
+    build:
+      context: .
+      dockerfile: Dockerfile.master
+    container_name: master
+    hostname: master
+    ports:
+      - "50070:50070"   # namenode 웹 UI
+      - "8088:8088"     # resourcemanager 웹 UI
+      - "19888:19888"   # job history server
+      - "9000:9000"     # HDFS RPC (core-site.xml의 fs.defaultFS 포트)
+    volumes:
+      - hadoop-namenode:/hadoop/dfs/name
+    networks:
+      - hadoop-net
+
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker1
+    hostname: worker1
+    volumes:
+      - hadoop-datanode1:/hadoop/dfs/data
+    networks:
+      - hadoop-net
+    depends_on:
+      - master
+
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker2
+    hostname: worker2
+    volumes:
+      - hadoop-datanode2:/hadoop/dfs/data
+    networks:
+      - hadoop-net
+    depends_on:
+      - master
+
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker3
+    hostname: worker3
+    volumes:
+      - hadoop-datanode3:/hadoop/dfs/data
+    networks:
+      - hadoop-net
+    depends_on:
+      - master
+
+networks:
+  hadoop-net:
+    driver: bridge
+
+volumes:
+  hadoop-namenode:
+  hadoop-datanode1:
+  hadoop-datanode2:
+  hadoop-datanode3:
