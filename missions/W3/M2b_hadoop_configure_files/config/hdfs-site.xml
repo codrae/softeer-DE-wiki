@@ -10,6 +10,10 @@
         <value>134217728</value>
     </property>
     <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>/hadoop/dfs/data</value>
+    </property>
+    <property>
         <name>dfs.namenode.name.dir</name>
         <value>/hadoop/dfs/name</value>
     </property>
