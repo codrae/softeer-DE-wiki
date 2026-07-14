@@ -6,6 +6,14 @@
         <value>yarn</value>
     </property>
     <property>
+    <name>mapreduce.map.java.opts</name>
+    <value>-Xmx768m</value>
+    </property>
+    <property>
+    <name>mapreduce.reduce.java.opts</name>
+    <value>-Xmx768m</value>
+    </property>
+    <property>
         <name>mapreduce.jobhistory.address</name>
         <value>namenode:10020</value>
     </property>
