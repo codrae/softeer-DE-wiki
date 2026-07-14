@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+    </property>
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>namenode:10020</value>
+    </property>
+    <property>
+        <name>mapreduce.task.io.sort.mb</name>
+        <value>256</value>
+    </property>
+    <property>
+        <name>mapreduce.job.tracker</name>
+        <value>namenode:9001</value>
+        <description>
+            Hadoop 1.x(JobTracker) 시절 설정. YARN 프레임워크에서는
+            ResourceManager+ApplicationMaster로 대체되어 이 값은 무시됨.
+            학습 목적으로 Q1 결정에 따라 검증 대상에는 포함.
+        </description>
+    </property>
+</configuration>
