@@ -38,3 +38,4 @@ derby.log
 /missions/W1/M3_gdp_etl/raw.json
 /missions/W1/M3_gdp_etl/World_Economies.db
 /data/sentiment140/kakao_goods/keywords_by_character.json
+/missions/W3/M3_wordcount_using_mapreduce/wordcount_result.txt
