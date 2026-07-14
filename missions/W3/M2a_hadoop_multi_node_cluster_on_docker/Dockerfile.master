@@ -1,0 +1,14 @@
+# Dockerfile.master
+FROM w3m2a-base
+
+# entrypoint 스크립트 복사 및 실행 권한 부여
+COPY entrypoint-master.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Hadoop 설정 파일 복사 (4단계에서 hostname을 master 기준으로 갱신 예정 - 지금은 기존 값 그대로)
+COPY core-site.xml /opt/hadoop/etc/hadoop/core-site.xml
+COPY hdfs-site.xml /opt/hadoop/etc/hadoop/hdfs-site.xml
+COPY mapred-site.xml /opt/hadoop/etc/hadoop/mapred-site.xml
+COPY yarn-site.xml /opt/hadoop/etc/hadoop/yarn-site.xml
+
+ENTRYPOINT ["/entrypoint.sh"]
