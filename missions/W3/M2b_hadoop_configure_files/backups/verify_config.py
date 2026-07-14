@@ -58,10 +58,23 @@ def run_in_container(container, *cmd):
         return None
 
 
-def wait_for_readiness(timeout=60, interval=5):
+def check_safemode_off():
+    """
+    NameNode가 safe mode에서 벗어났는지 확인.
+    재시작 직후 datanode 블록 리포트가 threshold(기본 0.999)에 도달하기 전까지는
+    쓰기 작업(mkdir, put 등)이 전부 막히므로, readiness check에 반드시 포함해야 한다.
+    """
+    output = run_in_container("namenode", "hdfs", "dfsadmin", "-safemode", "get")
+    if output is None:
+        return False
+    return "Safe mode is OFF" in output
+
+
+def wait_for_readiness(timeout=90, interval=5):
     """
     D-4 결정: 모든 검증에 앞서 datanode/nodemanager가 기대 개수만큼
-    등록될 때까지 폴링. 이후 개별 검증 단계는 재시도 로직 없이 단순화 가능.
+    등록되고, NameNode가 safe mode에서 벗어날 때까지 폴링.
+    이후 개별 검증 단계는 재시도 로직 없이 단순화 가능.
     """
     print("=== 0. Readiness Check ===")
     elapsed = 0
@@ -84,17 +97,22 @@ def wait_for_readiness(timeout=60, interval=5):
         except Exception:
             active_nodemanagers = 0
 
-        print(f"  [{elapsed}s] datanode={live_datanodes}/{EXPECTED_DATANODES}, "
-              f"nodemanager={active_nodemanagers}/{EXPECTED_NODEMANAGERS}")
+        safemode_off = check_safemode_off()
 
-        if live_datanodes >= EXPECTED_DATANODES and active_nodemanagers >= EXPECTED_NODEMANAGERS:
-            print("  PASS: 모든 노드 등록 완료")
+        print(f"  [{elapsed}s] datanode={live_datanodes}/{EXPECTED_DATANODES}, "
+              f"nodemanager={active_nodemanagers}/{EXPECTED_NODEMANAGERS}, "
+              f"safemode_off={safemode_off}")
+
+        if (live_datanodes >= EXPECTED_DATANODES
+                and active_nodemanagers >= EXPECTED_NODEMANAGERS
+                and safemode_off):
+            print("  PASS: 모든 노드 등록 완료 + safe mode 해제 확인")
             return True
 
         time.sleep(interval)
         elapsed += interval
 
-    print("  FAIL: timeout 내 모든 노드가 등록되지 않음 (아래 검증은 이 상태 기준으로 진행)")
+    print("  FAIL: timeout 내 준비 완료 상태에 도달하지 못함 (아래 검증은 이 상태 기준으로 진행)")
     return False
 
 
@@ -105,7 +123,6 @@ def check_config_values():
     print("\n=== 1. 설정값 검증 ===")
     results = []
 
-    # getconf는 hadoop 클라이언트 커맨드가 있는 컨테이너 안에서 실행
     for filename, props in EXPECTED.items():
         for key, expected_value in props.items():
             actual = run_in_container("namenode", "hdfs", "getconf", "-confKey", key)
@@ -113,14 +130,12 @@ def check_config_values():
             print(f"  [{status}] (getconf) {key} -> {actual} (expected {expected_value})")
             results.append((key, "getconf", status))
 
-    # job.tracker는 별도 처리 (Q1 결정)
     actual_jt = run_in_container("namenode", "hdfs", "getconf", "-confKey", "mapreduce.job.tracker")
     jt_status = "PASS" if actual_jt == JOB_TRACKER_EXPECTED else "FAIL"
     print(f"  [{jt_status}] (getconf) mapreduce.job.tracker -> {actual_jt} "
           f"(설정은 반영되지만 YARN 모드에서는 무시됨)")
     results.append(("mapreduce.job.tracker", "getconf", jt_status))
 
-    # 데몬이 실제로 로드한 값 (namenode /conf, resourcemanager /conf)
     try:
         nn_conf = requests.get(f"http://{NAMENODE_HOST}:{NAMENODE_WEB_PORT}/conf", timeout=5).text
         rm_conf = requests.get(f"http://{NAMENODE_HOST}:{RM_WEB_PORT}/conf", timeout=5).text
