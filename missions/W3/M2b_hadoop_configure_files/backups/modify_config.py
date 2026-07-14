@@ -56,14 +56,18 @@ def load_or_get_property(tree, name):
     pass
 
 
-def set_property(tree, name, value):
-    """
-    TODO:
-    - 이미 있으면 <value> 텍스트만 교체
-    - 없으면 <property><name>...</name><value>...</value></property> 새로 생성해서
-      <configuration> 루트에 append (ET.SubElement 활용)
-    """
-    pass
+def set_property(tree, name, value, description=None):
+    root = tree.getroot()
+    elem = root.find(f".//property[name='{name}']")
+    if elem is not None:
+        elem.find("value").text = value
+        # description은 건드리지 않음 — 순수 문서용 메타데이터라 바꿀 이유 없음
+    else:
+        new_prop = ET.SubElement(root, "property")
+        ET.SubElement(new_prop, "name").text = name
+        ET.SubElement(new_prop, "value").text = value
+        if description:
+            ET.SubElement(new_prop, "description").text = description
 
 
 def modify_config_file(filepath, target_values):
