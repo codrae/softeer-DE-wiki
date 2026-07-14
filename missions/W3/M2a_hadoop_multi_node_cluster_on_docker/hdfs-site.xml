@@ -1,8 +1,8 @@
-<?xml version="1.0"?>
+<!-- hdfs-site.xml -->
 <configuration>
   <property>
     <name>dfs.replication</name>
-    <value>1</value>
+    <value>3</value>
   </property>
   <property>
     <name>dfs.namenode.name.dir</name>
@@ -13,7 +13,7 @@
     <value>/hadoop/dfs/data</value>
   </property>
   <property>
-  <name>dfs.namenode.secondary.http-address</name>
-  <value>localhost:50090</value>
+    <name>dfs.namenode.secondary.http-address</name>
+    <value>master:50090</value>
   </property>
 </configuration>

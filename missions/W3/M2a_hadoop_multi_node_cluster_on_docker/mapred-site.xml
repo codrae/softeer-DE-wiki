@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<!-- mapred-site.xml : 변경 없음 -->
 <configuration>
   <property>
     <name>mapreduce.framework.name</name>
