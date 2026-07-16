@@ -74,6 +74,10 @@
 | TF-IDF + KMeans | Job-Chaining 필요 |
 | Naive Bayes | Job-Chaining 필요 |
 
+- Rule-Based는 pre-defined와 유사한 부분이 많아서 배제.
+- TF-IDF + KMeans방식은 KMeans가 iteration을 여러번 돌아야 하는 방식이라 Job이 여러번 반복되어 오버헤드가 큼.
+=> NB(나이브베이즈)선정.
+
 #### Job-Chaining이 필요한 이유
 TF-IDF처럼 "단어 통계를 먼저 계산해야 그걸로 분류할 수 있는" 방법은:
 1. **Job 1**: 전체 트윗에서 단어 통계 계산 (mapper가 흩어져서 세고, reducer가 합쳐 "전체 통계" 완성)
