@@ -99,7 +99,7 @@ git commit -m "feat(W4M2): Spark+분석 패키지 Dockerfile 작성"
 
 **Interfaces:**
 - Consumes: Task 1의 이미지(`build: .`).
-- Produces: 4개 실행 중인 컨테이너(`spark-master`, `spark-worker-1`, `spark-worker-2`, `jupyter`)가 `spark-net` 네트워크로 연결됨. `./apps`가 모든 서비스에 `/opt/spark-apps`로, `./notebooks`가 `jupyter`에 `/opt/notebooks`로, 저장소 루트 `data/`가 `/opt/spark-data`로 마운트됨. 이후 Task들은 `docker compose exec jupyter <cmd>`로 이 환경을 사용한다.
+- Produces: 4개 실행 중인 컨테이너(`spark-master`, `spark-worker-1`, `spark-worker-2`, `jupyter`)가 `spark-net` 네트워크로 연결됨. `./apps`가 모든 서비스에 `/opt/spark-apps`로, `./notebooks`가 `jupyter`에 `/opt/notebooks`로, `missions/data/`(compose 파일 기준 `../../data`)가 `/opt/spark-data`로 마운트됨 — 설계 문서의 데이터 저장 위치(`missions/data/raw/tlc/`, `missions/data/raw/weather/`, `missions/data/output/`)와 동일한 디렉토리이며 저장소 루트의 `data/`(다른 미션들의 데이터셋)와는 별개다. 이후 Task들은 `docker compose exec jupyter <cmd>`로 이 환경을 사용한다.
 
 - [ ] **Step 1: apps/, notebooks/ 빈 디렉토리 생성**
 
