@@ -1,0 +1,63 @@
+services:
+
+  spark-master:
+    build: .
+    container_name: spark-master
+    hostname: spark-master
+    # start-master.sh: 이 컨테이너를 클러스터의 자원 관리자(master)로 띄움
+    command: >
+      bash -c "start-master.sh --host spark-master --port 7077 --webui-port 8080
+      && tail -f /opt/spark/logs/*.out"
+    ports:
+      - "8080:8080"   # Spark Master Web UI
+      - "7077:7077"   # Master URI (spark://spark-master:7077) - worker/driver 접속용
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ../../data:/opt/spark-data
+    networks:
+      - spark-net
+
+  spark-worker-1:
+    build: .
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    depends_on:
+      - spark-master
+    # worker는 master URI로 접속해서 "나 여기 자원 있어요"라고 등록
+    command: >
+      bash -c "start-worker.sh spark://spark-master:7077 --webui-port 8081
+      && tail -f /opt/spark/logs/*.out"
+    ports:
+      - "8081:8081"   # Worker-1 Web UI
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ../../data:/opt/spark-data
+    networks:
+      - spark-net
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+
+  spark-worker-2:
+    build: .
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    depends_on:
+      - spark-master
+    command: >
+      bash -c "start-worker.sh spark://spark-master:7077 --webui-port 8082
+      && tail -f /opt/spark/logs/*.out"
+    ports:
+      - "8082:8082"   # Worker-2 Web UI
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ../../data:/opt/spark-data
+    networks:
+      - spark-net
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+
+networks:
+  spark-net:
+    driver: bridge
