@@ -89,3 +89,59 @@ def test_compute_hourly_trip_counts_groups_by_hour(spark):
     }
 
     assert result == {0: 2, 5: 1}
+
+
+def test_compute_hourly_trip_series_groups_by_date_and_hour(spark):
+    cleaned = _cleaned_sample(spark)
+
+    rows = {
+        row["dt_hour"]: row["trip_count"]
+        for row in pipeline.compute_hourly_trip_series(cleaned).collect()
+    }
+
+    assert len(rows) == 2  # 2024-01-01 00시, 2024-01-01 05시
+
+
+def test_join_hourly_weather_matches_on_truncated_hour(spark):
+    hourly_series = spark.createDataFrame(
+        [(datetime(2024, 1, 1, 0, 0, 0), 10), (datetime(2024, 1, 1, 1, 0, 0), 4)],
+        ["dt_hour", "trip_count"],
+    )
+    weather = spark.createDataFrame(
+        [
+            (datetime(2024, 1, 1, 0, 30, 0), 5.0, 0.0),
+            (datetime(2024, 1, 1, 1, 15, 0), -2.0, 3.0),
+        ],
+        ["datetime", "temperature_2m", "precipitation"],
+    )
+
+    joined = pipeline.join_hourly_weather(hourly_series, weather).orderBy("dt_hour").collect()
+
+    assert len(joined) == 2
+    assert joined[0]["trip_count"] == 10 and joined[0]["temperature_2m"] == 5.0
+    assert joined[1]["trip_count"] == 4 and joined[1]["precipitation"] == 3.0
+
+
+def test_compute_correlations_perfect_positive_relationship():
+    pdf = pd.DataFrame({
+        "trip_count": [10, 20, 30, 40],
+        "temperature_2m": [1, 2, 3, 4],
+        "precipitation": [4, 3, 2, 1],
+    })
+
+    result = pipeline.compute_correlations(pdf)
+
+    assert abs(result["temperature_r"] - 1.0) < 1e-6
+    assert abs(result["precipitation_r"] - (-1.0)) < 1e-6
+
+
+def test_compute_weather_condition_stats_detects_lower_trips_on_rainy_hours():
+    pdf = pd.DataFrame({
+        "trip_count": [100, 105, 98, 20, 25, 18],
+        "precipitation": [0, 0, 0, 5, 6, 4],
+    })
+
+    result = pipeline.compute_weather_condition_stats(pdf)
+
+    assert result["dry_mean_trip_count"] > result["rainy_mean_trip_count"]
+    assert result["p_value"] < 0.05

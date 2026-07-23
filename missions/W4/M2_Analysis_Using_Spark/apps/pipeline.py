@@ -1,5 +1,6 @@
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
+from scipy import stats as scipy_stats
 
 MAX_TRIP_DURATION_MIN = 180
 MAX_TRIP_DISTANCE_MI = 100
@@ -57,3 +58,43 @@ def compute_hourly_trip_counts(df: DataFrame) -> DataFrame:
         .withColumnRenamed("count", "trip_count")
         .orderBy("pickup_hour")
     )
+
+
+def compute_hourly_trip_series(df: DataFrame) -> DataFrame:
+    return (
+        df.withColumn("dt_hour", F.date_trunc("hour", "tpep_pickup_datetime"))
+        .groupBy("dt_hour")
+        .count()
+        .withColumnRenamed("count", "trip_count")
+        .orderBy("dt_hour")
+    )
+
+
+def join_hourly_weather(hourly_series_df: DataFrame, weather_df: DataFrame) -> DataFrame:
+    weather_hourly = weather_df.withColumn("dt_hour", F.date_trunc("hour", "datetime"))
+    return hourly_series_df.join(weather_hourly, on="dt_hour", how="inner").select(
+        "dt_hour", "trip_count", "temperature_2m", "precipitation"
+    )
+
+
+def compute_correlations(pdf) -> dict:
+    temp_r, temp_p = scipy_stats.pearsonr(pdf["trip_count"], pdf["temperature_2m"])
+    precip_r, precip_p = scipy_stats.pearsonr(pdf["trip_count"], pdf["precipitation"])
+    return {
+        "temperature_r": float(temp_r),
+        "temperature_p": float(temp_p),
+        "precipitation_r": float(precip_r),
+        "precipitation_p": float(precip_p),
+    }
+
+
+def compute_weather_condition_stats(pdf) -> dict:
+    rainy = pdf[pdf["precipitation"] > 0]["trip_count"]
+    dry = pdf[pdf["precipitation"] == 0]["trip_count"]
+    t_stat, p_value = scipy_stats.ttest_ind(rainy, dry, equal_var=False)
+    return {
+        "rainy_mean_trip_count": float(rainy.mean()),
+        "dry_mean_trip_count": float(dry.mean()),
+        "t_stat": float(t_stat),
+        "p_value": float(p_value),
+    }
