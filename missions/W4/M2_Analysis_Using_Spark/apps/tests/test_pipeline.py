@@ -22,6 +22,21 @@ def test_load_trips_reads_parquet_glob(spark, tmp_path):
     assert "trip_distance" in df.columns
 
 
+def test_load_trips_reads_csv_when_format_is_csv(spark, tmp_path):
+    csv_path = tmp_path / "trips.csv"
+    csv_path.write_text(
+        "tpep_pickup_datetime,tpep_dropoff_datetime,trip_distance,fare_amount\n"
+        "2024-01-01T00:00:00,2024-01-01T00:10:00,2.5,12.0\n"
+    )
+
+    df = pipeline.load_trips(spark, str(csv_path), file_format="csv")
+
+    assert df.count() == 1
+    row = df.collect()[0]
+    assert row["trip_distance"] == 2.5
+    assert row["tpep_pickup_datetime"] is not None
+
+
 def test_load_weather_reads_csv_and_casts_timestamp(spark, tmp_path):
     csv_path = tmp_path / "weather.csv"
     csv_path.write_text(

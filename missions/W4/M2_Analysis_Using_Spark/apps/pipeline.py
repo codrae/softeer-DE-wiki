@@ -6,8 +6,17 @@ MAX_TRIP_DURATION_MIN = 180
 MAX_TRIP_DISTANCE_MI = 100
 
 
-def load_trips(spark: SparkSession, path_glob: str) -> DataFrame:
-    return spark.read.parquet(path_glob)
+def load_trips(spark: SparkSession, path_glob: str, file_format: str = "parquet") -> DataFrame:
+    if file_format == "parquet":
+        return spark.read.parquet(path_glob)
+    elif file_format == "csv":
+        return (
+            spark.read.option("header", True).option("inferSchema", True).csv(path_glob)
+            .withColumn("tpep_pickup_datetime", F.to_timestamp("tpep_pickup_datetime"))
+            .withColumn("tpep_dropoff_datetime", F.to_timestamp("tpep_dropoff_datetime"))
+        )
+    else:
+        raise ValueError(f"Unsupported file_format: {file_format}")
 
 
 def load_weather(spark: SparkSession, path: str) -> DataFrame:
