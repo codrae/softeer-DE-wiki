@@ -145,3 +145,29 @@ def test_compute_weather_condition_stats_detects_lower_trips_on_rainy_hours():
 
     assert result["dry_mean_trip_count"] > result["rainy_mean_trip_count"]
     assert result["p_value"] < 0.05
+
+
+def test_write_output_table_creates_parquet_and_csv(spark, tmp_path):
+    df = spark.createDataFrame([(1, "a"), (2, "b")], ["id", "label"])
+
+    pipeline.write_output_table(df, str(tmp_path), "sample_table")
+
+    parquet_dir = tmp_path / "sample_table"
+    csv_dir = tmp_path / "sample_table_csv"
+    assert parquet_dir.exists()
+    assert csv_dir.exists()
+
+    read_back = spark.read.parquet(str(parquet_dir))
+    assert read_back.count() == 2
+
+    csv_files = list(csv_dir.glob("*.csv"))
+    assert len(csv_files) == 1
+    assert "id,label" in csv_files[0].read_text()
+
+
+def test_stats_to_dataframe_wraps_dict_as_single_row(spark):
+    df = pipeline.stats_to_dataframe(spark, {"a": 1.0, "b": 2.0})
+
+    row = df.collect()[0]
+    assert row["a"] == 1.0
+    assert row["b"] == 2.0
