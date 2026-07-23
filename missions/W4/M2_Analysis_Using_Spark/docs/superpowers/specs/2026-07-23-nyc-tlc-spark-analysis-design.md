@@ -77,8 +77,8 @@ worker-2 UI `8082:8082`, JupyterLab `8888:8888`만 매핑한다.
 - 위 단계에서 생성한 결과 테이블 4종을 최종 저장:
   - `summary_metrics` (평균 이동시간/거리)
   - `hourly_trip_counts` (피크아워 분석)
-  - `hourly_weather_join` (날씨 조인 테이블 + 상관계수)
-  - `weather_condition_stats` (t-test 결과)
+  - `hourly_weather_join` (시간당 트립 수 + 날씨 조인 테이블, 원본 조인 결과 그대로)
+  - `weather_condition_stats` (피어슨 상관계수 + t-test 결과를 하나의 스칼라 테이블로 통합 저장 — 둘 다 행 단위가 아닌 요약 통계이므로 조인 테이블에 붙이지 않고 여기로 모음)
 - 각각 parquet(`/opt/spark-data/output/<name>`)과 사람이 읽기 쉬운 csv로 저장
 - 노트북 마지막 셀에서 전체 결과 요약(표 + 그래프 3종: 피크아워 막대그래프, 날씨-트립 산점도, 강수유무 비교 막대그래프)을 한 번에 정리
 
