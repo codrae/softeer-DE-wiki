@@ -39,3 +39,21 @@ def clean_trips(df: DataFrame) -> DataFrame:
             & (F.col("fare_amount") >= 0)
         )
     )
+
+
+def compute_summary_metrics(df: DataFrame) -> DataFrame:
+    return df.agg(
+        F.avg("trip_duration_min").alias("avg_trip_duration_min"),
+        F.avg("trip_distance").alias("avg_trip_distance_mi"),
+        F.count(F.lit(1)).alias("trip_count"),
+    )
+
+
+def compute_hourly_trip_counts(df: DataFrame) -> DataFrame:
+    return (
+        df.withColumn("pickup_hour", F.hour("tpep_pickup_datetime"))
+        .groupBy("pickup_hour")
+        .count()
+        .withColumnRenamed("count", "trip_count")
+        .orderBy("pickup_hour")
+    )

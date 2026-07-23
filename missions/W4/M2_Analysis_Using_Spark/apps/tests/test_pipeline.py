@@ -56,3 +56,36 @@ def test_clean_trips_filters_invalid_rows_and_adds_duration(spark):
     assert len(result) == 1
     assert result[0]["trip_distance"] == 2.5
     assert abs(result[0]["trip_duration_min"] - 10.0) < 1e-6
+
+
+def _cleaned_sample(spark):
+    columns = [
+        "tpep_pickup_datetime", "tpep_dropoff_datetime", "trip_distance", "fare_amount",
+    ]
+    rows = [
+        (datetime(2024, 1, 1, 0, 0, 0), datetime(2024, 1, 1, 0, 10, 0), 2.0, 10.0),
+        (datetime(2024, 1, 1, 0, 30, 0), datetime(2024, 1, 1, 0, 40, 0), 4.0, 10.0),
+        (datetime(2024, 1, 1, 5, 0, 0), datetime(2024, 1, 1, 5, 5, 0), 3.0, 10.0),
+    ]
+    return pipeline.clean_trips(spark.createDataFrame(rows, columns))
+
+
+def test_compute_summary_metrics_returns_averages(spark):
+    cleaned = _cleaned_sample(spark)
+
+    result = pipeline.compute_summary_metrics(cleaned).collect()[0]
+
+    assert result["trip_count"] == 3
+    assert abs(result["avg_trip_distance_mi"] - 3.0) < 1e-6
+    assert abs(result["avg_trip_duration_min"] - 8.333333) < 1e-3
+
+
+def test_compute_hourly_trip_counts_groups_by_hour(spark):
+    cleaned = _cleaned_sample(spark)
+
+    result = {
+        row["pickup_hour"]: row["trip_count"]
+        for row in pipeline.compute_hourly_trip_counts(cleaned).collect()
+    }
+
+    assert result == {0: 2, 5: 1}
