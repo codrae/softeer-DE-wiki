@@ -31,6 +31,7 @@ derby.log
 *.csv
 
 /data/
+/missions/data/
 /missions/W1/M2_SQL_Tutorial/w3schools.db
 /missions/W1/M3_gdp_etl/Countries_by_Region.json
 /missions/W1/M3_gdp_etl/Countries_by_GDP.json
