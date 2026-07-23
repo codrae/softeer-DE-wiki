@@ -8,18 +8,18 @@ NYC Taxi and Limousine Commission(TLC) Trip Record Data를 PySpark로 적재/정
 ## 범위
 - 데이터: 최근 1~2개월치 Yellow Taxi Trip Records (TLC 공식 parquet)
 - 날씨: Open-Meteo Historical Weather API — 동일 기간 NYC 좌표의 hourly 기온/강수량
-- 실행 환경: 로컬 Docker Compose 기반 Spark standalone 클러스터 (master 1 + worker 2, M1과 동일 스펙)
+- 실행 환경: 로컬 Docker Compose 기반 Spark standalone 클러스터 (master 1 + worker 2)
 
 ## 아키텍처
 
 ```
 missions/W4/M2_Analysis_Using_Spark/
-├── Dockerfile              # M1 베이스(Spark 3.5.9, Python 3.10, JDK17) + pandas/pyarrow/requests/scipy/
-│                           #   matplotlib/jupyterlab 추가 설치
+├── Dockerfile              # Spark 3.5.9 + Python 3.10 + JDK17 베이스에 pandas/pyarrow/requests/
+│                           #   scipy/matplotlib/jupyterlab 추가 설치
 ├── docker-compose.yml
-│   ├── spark-master        # M1과 동일
-│   ├── spark-worker-1/2    # M1과 동일 (2 core / 2g)
-│   └── jupyter             # NEW: 같은 spark-net에 조인하는 driver 컨테이너.
+│   ├── spark-master
+│   ├── spark-worker-1/2    # 2 core / 2g
+│   └── jupyter             # 같은 spark-net에 조인하는 driver 컨테이너.
 │                           #   client 모드로 spark://spark-master:7077 에 직접 접속.
 │                           #   JupyterLab 8888 포트 노출, ./apps, ./notebooks, ../../data 마운트
 ├── apps/
@@ -28,11 +28,9 @@ missions/W4/M2_Analysis_Using_Spark/
     └── analysis.ipynb      # 7단계 셀 구성 (아래 파이프라인 섹션 참조)
 ```
 
-기존 `M1_Spark_Standalone`과는 완전히 분리된 독립 docker-compose로 구성한다. 드라이버(Jupyter)가
-같은 Docker 네트워크 안에서 `spark://spark-master:7077`로 접속하므로 7077 포트는 호스트에 노출할
-필요가 없다. M1과의 호스트 포트 충돌을 피하기 위해 웹 UI 포트만 다음과 같이 다르게 매핑한다:
-master UI `8090:8080`, worker-1 UI `8091:8081`, worker-2 UI `8092:8082`, JupyterLab `8888:8888`.
-이렇게 하면 M1과 M2 스택을 동시에 띄워도 충돌하지 않는다.
+드라이버(Jupyter)가 같은 Docker 네트워크 안에서 `spark://spark-master:7077`로 접속하므로 7077 포트는
+호스트에 노출할 필요가 없다. 호스트에는 master UI `8080:8080`, worker-1 UI `8081:8081`,
+worker-2 UI `8082:8082`, JupyterLab `8888:8888`만 매핑한다.
 
 데이터 저장 위치:
 - `missions/data/raw/tlc/` — 원본 TLC parquet (연-월별 파일)
