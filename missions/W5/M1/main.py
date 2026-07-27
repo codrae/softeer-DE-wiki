@@ -39,27 +39,25 @@ print(f"rdd.first : {rdd.first()}")
 # RDD 캐싱
 rdd.cache()
 
-# 총 트립 수
-total_trip = rdd.count()
+# 총 트립 수 / 총 매출 / 평균 트립 거리 (reduce 한 번으로 동시 계산)
+trip_count, fare_sum, dist_sum = rdd.map(lambda x: (1, x[1], x[2])) \
+    .reduce(lambda a, b: (a[0] + b[0], a[1] + b[1], a[2] + b[2]))
+
+total_trip = trip_count
+total_sales = fare_sum
+avg_distance = dist_sum / trip_count
 print(f"total_trip = {total_trip}")
-
-# 총 매출
-total_sales = rdd.map(lambda x : x[1]).sum()
 print(f"total_sales = {total_sales}")
-
-# 평균 트립 거리
-avg_distance = rdd.map(lambda x : x[2]).mean()
 print(f"avg_distance = {avg_distance}")
 
-# 날짜별 트립 수
-daily_trip = rdd.map(lambda x : (x[0], 1)).reduceByKey(lambda a,b : a+b)
-daily_trip.cache()
+# 날짜별 트립 수 / 날짜별 매출 (reduceByKey 한 번으로 동시 계산)
+daily_combined = rdd.map(lambda x: (x[0], (1, x[1]))) \
+    .reduceByKey(lambda a, b: (a[0] + b[0], a[1] + b[1]))
+daily_combined.cache()
+
+daily_trip = daily_combined.mapValues(lambda v: v[0])
+daily_sales = daily_combined.mapValues(lambda v: v[1])
 print(f"daily_trip = {daily_trip.collect()}")
-
-
-# 날짜별 매출
-daily_sales = rdd.map(lambda x : (x[0], x[1])).reduceByKey(lambda a,b : a+b)
-daily_sales.cache()
 print(f"daily_sales = {daily_sales.collect()}")
 
 overwrite_dir("data/output/daily_trip")
