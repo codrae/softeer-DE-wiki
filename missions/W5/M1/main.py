@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession
+from pyspark.sql import Row
 import datetime
 import os
 import shutil
@@ -9,15 +10,36 @@ def overwrite_dir(path):
         print(f"삭제할 경로: {path}")
         shutil.rmtree(path)
 
-spark = SparkSession.builder.appName("PySpark").master("local[*]").getOrCreate()
 
-df = spark.read.parquet("data/yellow_tripdata_2026-05.parquet")
-#df.printSchema()
-df = df.select("tpep_pickup_datetime", "fare_amount", "trip_distance")
-print("-----------df.select---------------")
-#df.printSchema()
+def to_float(value):
+    return float(value) if value not in (None, "") else None
 
-rdd = df.rdd
+spark = SparkSession.builder.appName("PySpark").master("local[4]").getOrCreate()
+
+INPUT_PATH = "data/yellow_tripdata_2026-05.parquet"
+
+if INPUT_PATH.endswith(".parquet"):
+    df = spark.read.parquet(INPUT_PATH)
+    #df.printSchema()
+    df = df.select("tpep_pickup_datetime", "fare_amount", "trip_distance")
+    #print("-----------df.select---------------")
+    #df.printSchema()
+    rdd = df.rdd
+elif INPUT_PATH.endswith(".csv"):
+    # 컬럼 순서는 parquet 스키마와 동일하다고 가정 (VendorID=0, tpep_pickup_datetime=1,
+    # tpep_dropoff_datetime=2, passenger_count=3, trip_distance=4, ..., fare_amount=10).
+    # 실제 CSV 파일을 받으면 헤더 줄과 대조해서 인덱스가 맞는지 꼭 확인할 것.
+    lines = spark.sparkContext.textFile(INPUT_PATH)
+    header = lines.first()
+    rdd = lines.filter(lambda line: line != header) \
+        .map(lambda line: line.split(",")) \
+        .map(lambda cols: Row(
+            tpep_pickup_datetime=datetime.datetime.strptime(cols[1], "%Y-%m-%d %H:%M:%S"),
+            fare_amount=to_float(cols[10]),
+            trip_distance=to_float(cols[4]),
+        ))
+else:
+    raise ValueError(f"지원하지 않는 파일 형식입니다: {INPUT_PATH}")
 
 # print("row count", rdd.count())
 # for row in rdd.take(5):
@@ -34,7 +56,7 @@ end_date = datetime.date(2026,5,31)
 rdd = rdd.map(lambda x : (x["tpep_pickup_datetime"].date(), x["fare_amount"], x["trip_distance"]) )
 rdd = rdd.filter(lambda x : end_date >= x[0] >= start_date)
 
-print(f"rdd.first : {rdd.first()}")
+#print(f"rdd.first : {rdd.first()}")
 
 # RDD 캐싱
 rdd.cache()
@@ -58,19 +80,21 @@ daily_combined.cache()
 daily_trip = daily_combined.mapValues(lambda v: v[0])
 daily_sales = daily_combined.mapValues(lambda v: v[1])
 print(f"daily_trip = {daily_trip.collect()}")
+print("---------------------------------------------")
 print(f"daily_sales = {daily_sales.collect()}")
 
 overwrite_dir("data/output/daily_trip")
-daily_trip.map(lambda x: str(x[0]) + "," + str(x[1])).saveAsTextFile("data/output/daily_trip")
+daily_trip.map(lambda x: f"{x[0]},{x[1]}").saveAsTextFile("data/output/daily_trip")
 
 overwrite_dir("data/output/daily_sales")
-daily_sales.map(lambda x: str(x[0]) + "," + str(x[1])).saveAsTextFile("data/output/daily_sales")
+daily_sales.map(lambda x: f"{x[0]},{x[1]}").saveAsTextFile("data/output/daily_sales")
 
 summary = [("total_trip", total_trip), ("total_sales", total_sales), ("avg_distance", avg_distance)]
 summary_rdd = spark.sparkContext.parallelize(summary, 1)
 overwrite_dir("data/output/summary")
-summary_rdd.map(lambda x: str(x[0]) + "," + str(x[1])).saveAsTextFile("data/output/summary")
+summary_rdd.map(lambda x: f"{x[0]},{x[1]}").saveAsTextFile("data/output/summary")
 
 input("Enter를 누르면 종료합니다 (그 전에 http://localhost:4040 에서 DAG 확인)...")
+spark.stop()
 
 
