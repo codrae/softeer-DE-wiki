@@ -162,3 +162,40 @@ def run_pipeline(spark: SparkSession, trips_path: str, zone_lookup_path: str, ou
         "borough_summary": borough_summary_df,
         "log": log,
     }
+
+
+def main():
+    base_dir = Path(__file__).parent
+    data_dir = base_dir / "data"
+    zone_lookup_path = data_dir / "taxi_zone_lookup.csv"
+    trips_path = data_dir / "yellow_tripdata_2026-05.parquet"
+    output_dir = data_dir / "output"
+
+    download_zone_lookup(zone_lookup_path)
+
+    spark = (
+        SparkSession.builder
+        .appName("NYCTaxiDataFrameAnalysis")
+        .master("local[4]")
+        .getOrCreate()
+    )
+    print(f"Spark version: {spark.version}")
+
+    result = run_pipeline(spark, str(trips_path), str(zone_lookup_path), str(output_dir))
+
+    print(f"raw_count = {result['raw_count']}")
+    print(f"cleaned_count = {result['cleaned_count']}")
+    print(f"sample multi-passenger rows (first 5): {result['sample_rows'][:5]}")
+    print("daily_summary:")
+    result["daily_summary"].show(31, truncate=False)
+    print("hourly_counts:")
+    result["hourly_counts"].show(24, truncate=False)
+    print("borough_summary:")
+    result["borough_summary"].show(10, truncate=False)
+
+    input("Enter를 누르면 종료합니다 (그 전에 http://localhost:4040 에서 DAG 확인)...")
+    spark.stop()
+
+
+if __name__ == "__main__":
+    main()
