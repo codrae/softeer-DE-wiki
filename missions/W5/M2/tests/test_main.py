@@ -109,3 +109,16 @@ def test_clean_trips_filters_invalid_rows_and_adds_derived_columns(spark):
     assert abs(row["trip_duration_min"] - 10.0) < 1e-6
     assert row["pickup_date"] == date(2024, 1, 1)
     assert row["pickup_hour"] == 8
+
+
+def test_filter_multi_passenger_keeps_only_more_than_one_rider(spark):
+    rows = [
+        _trip_row(passenger_count=1),
+        _trip_row(passenger_count=2),
+        _trip_row(passenger_count=3),
+    ]
+    cleaned = main.clean_trips(spark.createDataFrame(rows, _TRIP_COLUMNS))
+
+    result = main.filter_multi_passenger(cleaned).collect()
+
+    assert sorted(row["passenger_count"] for row in result) == [2, 3]

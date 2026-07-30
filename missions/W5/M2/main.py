@@ -56,3 +56,7 @@ def clean_trips(df: DataFrame) -> DataFrame:
             & (F.col("fare_amount") >= 0)
         )
     )
+
+
+def filter_multi_passenger(df: DataFrame) -> DataFrame:
+    return df.filter(F.col("passenger_count") > 1)
