@@ -175,3 +175,21 @@ def test_compute_borough_summary_joins_on_pickup_location_and_groups_by_borough(
 
     assert result["Manhattan"] == (2, 15.0)
     assert result["Queens"] == (1, 5.0)
+
+
+def test_write_output_table_creates_parquet_and_csv(spark, tmp_path):
+    df = spark.createDataFrame([(1, "Manhattan"), (2, "Queens")], ["trip_count", "pickup_borough"])
+
+    main.write_output_table(df, str(tmp_path), "borough_summary")
+
+    parquet_dir = tmp_path / "borough_summary"
+    csv_dir = tmp_path / "borough_summary_csv"
+    assert parquet_dir.exists()
+    assert csv_dir.exists()
+
+    read_back = spark.read.parquet(str(parquet_dir))
+    assert read_back.count() == 2
+
+    csv_files = list(csv_dir.glob("*.csv"))
+    assert len(csv_files) == 1
+    assert "trip_count,pickup_borough" in csv_files[0].read_text()

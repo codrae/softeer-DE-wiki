@@ -99,3 +99,8 @@ def compute_borough_summary(df: DataFrame, zone_lookup_df: DataFrame) -> DataFra
         )
         .orderBy(F.col("trip_count").desc())
     )
+
+
+def write_output_table(df: DataFrame, output_dir: str, name: str) -> None:
+    df.write.mode("overwrite").parquet(f"{output_dir}/{name}")
+    df.coalesce(1).write.mode("overwrite").option("header", True).csv(f"{output_dir}/{name}_csv")
