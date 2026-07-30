@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import requests
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 ZONE_LOOKUP_URL = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
 
@@ -21,3 +21,11 @@ def download_zone_lookup(dest_path, url: str = ZONE_LOOKUP_URL, timeout: int = 6
         raise RuntimeError(f"Failed to download {url}: HTTP {response.status_code}")
     dest_path.write_bytes(response.content)
     return dest_path
+
+
+def load_trips(spark: SparkSession, path: str) -> DataFrame:
+    return spark.read.parquet(path)
+
+
+def load_zone_lookup(spark: SparkSession, path: str) -> DataFrame:
+    return spark.read.option("header", True).option("inferSchema", True).csv(path)

@@ -43,3 +43,25 @@ def test_download_zone_lookup_raises_on_http_error(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError):
         main.download_zone_lookup(dest, url="http://example.com/missing.csv")
+
+
+def test_load_trips_reads_parquet(spark, tmp_path):
+    pdf_rows = [(1, 2.5)]
+    df = spark.createDataFrame(pdf_rows, ["VendorID", "trip_distance"])
+    df.write.parquet(str(tmp_path / "trips.parquet"), mode="overwrite")
+
+    result = main.load_trips(spark, str(tmp_path / "trips.parquet"))
+
+    assert result.count() == 1
+    assert "trip_distance" in result.columns
+
+
+def test_load_zone_lookup_reads_csv_with_header(spark, tmp_path):
+    csv_path = tmp_path / "zones.csv"
+    csv_path.write_text("LocationID,Borough,Zone,service_zone\n1,EWR,Newark Airport,EWR\n")
+
+    result = main.load_zone_lookup(spark, str(csv_path))
+
+    row = result.collect()[0]
+    assert row["LocationID"] == 1
+    assert row["Borough"] == "EWR"
