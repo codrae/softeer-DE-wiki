@@ -1,0 +1,154 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: package sun.security.action not in java.base
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+26/07/30 12:07:50 WARN Utils: Your hostname, KIMYONGJINs-MacBook-Pro.local, resolves to a loopback address: 127.0.0.1; using 192.168.1.25 instead (on interface en0)
+26/07/30 12:07:50 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+/Users/yong/PycharmProjects/softeer-DE-wiki/.venv/lib/python3.14/site-packages/pyspark/testing/utils.py:127: FutureWarning: PySpark does not yet fully support pandas >= 3.0.0. Some features may not work correctly. It is recommended to use pandas < 3.0.0 for now.
+  require_minimum_pandas_version()
+26/07/30 12:07:50 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[Stage 6:==============>                                            (1 + 3) / 4][Stage 6:=============================>                             (2 + 2) / 4]                                                                                Spark version: 4.2.0
+[action] raw row count = 4090836
+[action] cleaned row count = 3021419 (dropped 1069417); cache materialized in this same pass
+[lazy] transformations defined at 1785380876.203 -- no Spark job has run for these DataFrames yet
+[lazy] daily_summary_df physical plan (explain() does not trigger a job):
+== Parsed Logical Plan ==
+'Sort ['pickup_date ASC NULLS FIRST], true
++- Aggregate [pickup_date#67], [pickup_date#67, count(1) AS trip_count#786L, avg(trip_distance#4) AS avg_trip_distance_mi#787, sum(fare_amount#10) AS total_fare_amount#788]
+   +- Filter (((((((trip_duration_min#66 > cast(0 as double)) AND (trip_duration_min#66 <= cast(180 as double))) AND (trip_distance#4 > cast(0 as double))) AND (trip_distance#4 <= cast(100 as double))) AND (passenger_count#3L >= cast(1 as bigint))) AND (passenger_count#3L <= cast(6 as bigint))) AND (fare_amount#10 >= cast(0 as double)))
+      +- Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, trip_duration_min#66, pickup_date#67, hour(tpep_pickup_datetime#1, Some(Asia/Seoul)) AS pickup_hour#68]
+         +- Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, trip_duration_min#66, to_date(tpep_pickup_datetime#1, None, Some(Asia/Seoul), true) AS pickup_date#67]
+            +- Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, (cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / cast(60.0 as double)) AS trip_duration_min#66]
+               +- Filter atleastnnonnulls(7, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, fare_amount#10, PULocationID#7, DOLocationID#8)
+                  +- Relation [VendorID#0,tpep_pickup_datetime#1,tpep_dropoff_datetime#2,passenger_count#3L,trip_distance#4,RatecodeID#5L,store_and_fwd_flag#6,PULocationID#7,DOLocationID#8,payment_type#9L,fare_amount#10,extra#11,mta_tax#12,tip_amount#13,tolls_amount#14,improvement_surcharge#15,total_amount#16,congestion_surcharge#17,Airport_fee#18,cbd_congestion_fee#19] parquet
+
+== Analyzed Logical Plan ==
+pickup_date: date, trip_count: bigint, avg_trip_distance_mi: double, total_fare_amount: double
+Sort [pickup_date#67 ASC NULLS FIRST], true
++- Aggregate [pickup_date#67], [pickup_date#67, count(1) AS trip_count#786L, avg(trip_distance#4) AS avg_trip_distance_mi#787, sum(fare_amount#10) AS total_fare_amount#788]
+   +- Filter (((((((trip_duration_min#66 > cast(0 as double)) AND (trip_duration_min#66 <= cast(180 as double))) AND (trip_distance#4 > cast(0 as double))) AND (trip_distance#4 <= cast(100 as double))) AND (passenger_count#3L >= cast(1 as bigint))) AND (passenger_count#3L <= cast(6 as bigint))) AND (fare_amount#10 >= cast(0 as double)))
+      +- Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, trip_duration_min#66, pickup_date#67, hour(tpep_pickup_datetime#1, Some(Asia/Seoul)) AS pickup_hour#68]
+         +- Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, trip_duration_min#66, to_date(tpep_pickup_datetime#1, None, Some(Asia/Seoul), true) AS pickup_date#67]
+            +- Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, (cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / cast(60.0 as double)) AS trip_duration_min#66]
+               +- Filter atleastnnonnulls(7, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, fare_amount#10, PULocationID#7, DOLocationID#8)
+                  +- Relation [VendorID#0,tpep_pickup_datetime#1,tpep_dropoff_datetime#2,passenger_count#3L,trip_distance#4,RatecodeID#5L,store_and_fwd_flag#6,PULocationID#7,DOLocationID#8,payment_type#9L,fare_amount#10,extra#11,mta_tax#12,tip_amount#13,tolls_amount#14,improvement_surcharge#15,total_amount#16,congestion_surcharge#17,Airport_fee#18,cbd_congestion_fee#19] parquet
+
+== Optimized Logical Plan ==
+Sort [pickup_date#67 ASC NULLS FIRST], true
++- Aggregate [pickup_date#67], [pickup_date#67, count(1) AS trip_count#786L, avg(trip_distance#4) AS avg_trip_distance_mi#787, sum(fare_amount#10) AS total_fare_amount#788]
+   +- Project [trip_distance#4, fare_amount#10, pickup_date#67]
+      +- InMemoryRelation [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, trip_duration_min#66, pickup_date#67, pickup_hour#68], StorageLevel(disk, memory, deserialized, 1 replicas)
+            +- *(1) Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, (cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / 60.0) AS trip_duration_min#66, cast(tpep_pickup_datetime#1 as date) AS pickup_date#67, hour(tpep_pickup_datetime#1, Some(Asia/Seoul)) AS pickup_hour#68]
+               +- *(1) Filter ((((((((((isnotnull(trip_distance#4) AND isnotnull(passenger_count#3L)) AND isnotnull(fare_amount#10)) AND atleastnnonnulls(7, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, fare_amount#10, PULocationID#7, DOLocationID#8)) AND ((cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / 60.0) > 0.0)) AND ((cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / 60.0) <= 180.0)) AND (trip_distance#4 > 0.0)) AND (trip_distance#4 <= 100.0)) AND (passenger_count#3L >= 1)) AND (passenger_count#3L <= 6)) AND (fare_amount#10 >= 0.0))
+                  +- *(1) ColumnarToRow
+                     +- FileScan parquet [VendorID#0,tpep_pickup_datetime#1,tpep_dropoff_datetime#2,passenger_count#3L,trip_distance#4,RatecodeID#5L,store_and_fwd_flag#6,PULocationID#7,DOLocationID#8,payment_type#9L,fare_amount#10,extra#11,mta_tax#12,tip_amount#13,tolls_amount#14,improvement_surcharge#15,total_amount#16,congestion_surcharge#17,Airport_fee#18,cbd_congestion_fee#19] Batched: true, DataFilters: [isnotnull(trip_distance#4), isnotnull(passenger_count#3L), isnotnull(fare_amount#10), atleastnno..., Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/Users/yong/PycharmProjects/softeer-DE-wiki/missions/W5/M2/data/y..., PartitionFilters: [], PushedFilters: [IsNotNull(trip_distance), IsNotNull(passenger_count), IsNotNull(fare_amount), GreaterThan(trip_d..., ReadSchema: struct<VendorID:int,tpep_pickup_datetime:timestamp_ntz,tpep_dropoff_datetime:timestamp_ntz,passen...
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [pickup_date#67 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(pickup_date#67 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=135]
+      +- HashAggregate(keys=[pickup_date#67], functions=[count(1), avg(trip_distance#4), sum(fare_amount#10)], output=[pickup_date#67, trip_count#786L, avg_trip_distance_mi#787, total_fare_amount#788])
+         +- Exchange hashpartitioning(pickup_date#67, 200), ENSURE_REQUIREMENTS, [plan_id=132]
+            +- HashAggregate(keys=[pickup_date#67], functions=[partial_count(1), partial_avg(trip_distance#4), partial_sum(fare_amount#10)], output=[pickup_date#67, count#1221L, sum#1222, count#1223L, sum#1224])
+               +- InMemoryTableScan [trip_distance#4, fare_amount#10, pickup_date#67]
+                     +- InMemoryRelation [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, trip_duration_min#66, pickup_date#67, pickup_hour#68], StorageLevel(disk, memory, deserialized, 1 replicas)
+                           +- *(1) Project [VendorID#0, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, RatecodeID#5L, store_and_fwd_flag#6, PULocationID#7, DOLocationID#8, payment_type#9L, fare_amount#10, extra#11, mta_tax#12, tip_amount#13, tolls_amount#14, improvement_surcharge#15, total_amount#16, congestion_surcharge#17, Airport_fee#18, cbd_congestion_fee#19, (cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / 60.0) AS trip_duration_min#66, cast(tpep_pickup_datetime#1 as date) AS pickup_date#67, hour(tpep_pickup_datetime#1, Some(Asia/Seoul)) AS pickup_hour#68]
+                              +- *(1) Filter ((((((((((isnotnull(trip_distance#4) AND isnotnull(passenger_count#3L)) AND isnotnull(fare_amount#10)) AND atleastnnonnulls(7, tpep_pickup_datetime#1, tpep_dropoff_datetime#2, passenger_count#3L, trip_distance#4, fare_amount#10, PULocationID#7, DOLocationID#8)) AND ((cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / 60.0) > 0.0)) AND ((cast((unix_timestamp(tpep_dropoff_datetime#2, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true) - unix_timestamp(tpep_pickup_datetime#1, yyyy-MM-dd HH:mm:ss, Some(Asia/Seoul), true)) as double) / 60.0) <= 180.0)) AND (trip_distance#4 > 0.0)) AND (trip_distance#4 <= 100.0)) AND (passenger_count#3L >= 1)) AND (passenger_count#3L <= 6)) AND (fare_amount#10 >= 0.0))
+                                 +- *(1) ColumnarToRow
+                                    +- FileScan parquet [VendorID#0,tpep_pickup_datetime#1,tpep_dropoff_datetime#2,passenger_count#3L,trip_distance#4,RatecodeID#5L,store_and_fwd_flag#6,PULocationID#7,DOLocationID#8,payment_type#9L,fare_amount#10,extra#11,mta_tax#12,tip_amount#13,tolls_amount#14,improvement_surcharge#15,total_amount#16,congestion_surcharge#17,Airport_fee#18,cbd_congestion_fee#19] Batched: true, DataFilters: [isnotnull(trip_distance#4), isnotnull(passenger_count#3L), isnotnull(fare_amount#10), atleastnno..., Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/Users/yong/PycharmProjects/softeer-DE-wiki/missions/W5/M2/data/y..., PartitionFilters: [], PushedFilters: [IsNotNull(trip_distance), IsNotNull(passenger_count), IsNotNull(fare_amount), GreaterThan(trip_d..., ReadSchema: struct<VendorID:int,tpep_pickup_datetime:timestamp_ntz,tpep_dropoff_datetime:timestamp_ntz,passen...
+
+[action] collect() called at 1785380876.219
+[action] collect() returned at 1785380876.276, 20 rows
+[action] write(daily_summary) called at 1785380876.276
+[action] write(daily_summary) finished at 1785380877.027
+[action] write(hourly_counts) called at 1785380877.027
+[action] write(hourly_counts) finished at 1785380877.342
+[action] write(borough_summary) called at 1785380877.342
+[action] write(borough_summary) finished at 1785380877.877
+raw_count = 4090836
+cleaned_count = 3021419
+sample multi-passenger rows (first 5): [{'VendorID': 2, 'tpep_pickup_datetime': datetime.datetime(2026, 5, 1, 0, 48, 53), 'tpep_dropoff_datetime': datetime.datetime(2026, 5, 1, 0, 58, 22), 'passenger_count': 2, 'trip_distance': 1.79, 'RatecodeID': 1, 'store_and_fwd_flag': 'N', 'PULocationID': 114, 'DOLocationID': 164, 'payment_type': 1, 'fare_amount': 11.4, 'extra': 1.0, 'mta_tax': 0.5, 'tip_amount': 3.43, 'tolls_amount': 0.0, 'improvement_surcharge': 1.0, 'total_amount': 20.58, 'congestion_surcharge': 2.5, 'Airport_fee': 0.0, 'cbd_congestion_fee': 0.75, 'trip_duration_min': 9.483333333333333, 'pickup_date': datetime.date(2026, 5, 1), 'pickup_hour': 0}, {'VendorID': 2, 'tpep_pickup_datetime': datetime.datetime(2026, 5, 1, 0, 20, 50), 'tpep_dropoff_datetime': datetime.datetime(2026, 5, 1, 0, 47, 50), 'passenger_count': 2, 'trip_distance': 4.63, 'RatecodeID': 1, 'store_and_fwd_flag': 'N', 'PULocationID': 161, 'DOLocationID': 87, 'payment_type': 1, 'fare_amount': 26.8, 'extra': 1.0, 'mta_tax': 0.5, 'tip_amount': 4.88, 'tolls_amount': 0.0, 'improvement_surcharge': 1.0, 'total_amount': 37.43, 'congestion_surcharge': 2.5, 'Airport_fee': 0.0, 'cbd_congestion_fee': 0.75, 'trip_duration_min': 27.0, 'pickup_date': datetime.date(2026, 5, 1), 'pickup_hour': 0}, {'VendorID': 2, 'tpep_pickup_datetime': datetime.datetime(2026, 5, 1, 0, 1, 24), 'tpep_dropoff_datetime': datetime.datetime(2026, 5, 1, 0, 6, 36), 'passenger_count': 2, 'trip_distance': 0.77, 'RatecodeID': 1, 'store_and_fwd_flag': 'N', 'PULocationID': 79, 'DOLocationID': 144, 'payment_type': 1, 'fare_amount': 7.2, 'extra': 1.0, 'mta_tax': 0.5, 'tip_amount': 2.59, 'tolls_amount': 0.0, 'improvement_surcharge': 1.0, 'total_amount': 15.54, 'congestion_surcharge': 2.5, 'Airport_fee': 0.0, 'cbd_congestion_fee': 0.75, 'trip_duration_min': 5.2, 'pickup_date': datetime.date(2026, 5, 1), 'pickup_hour': 0}, {'VendorID': 2, 'tpep_pickup_datetime': datetime.datetime(2026, 5, 1, 0, 43, 38), 'tpep_dropoff_datetime': datetime.datetime(2026, 5, 1, 0, 51, 10), 'passenger_count': 2, 'trip_distance': 2.19, 'RatecodeID': 1, 'store_and_fwd_flag': 'N', 'PULocationID': 50, 'DOLocationID': 238, 'payment_type': 1, 'fare_amount': 11.4, 'extra': 1.0, 'mta_tax': 0.5, 'tip_amount': 2.57, 'tolls_amount': 0.0, 'improvement_surcharge': 1.0, 'total_amount': 19.72, 'congestion_surcharge': 2.5, 'Airport_fee': 0.0, 'cbd_congestion_fee': 0.75, 'trip_duration_min': 7.533333333333333, 'pickup_date': datetime.date(2026, 5, 1), 'pickup_hour': 0}, {'VendorID': 2, 'tpep_pickup_datetime': datetime.datetime(2026, 5, 1, 0, 45, 5), 'tpep_dropoff_datetime': datetime.datetime(2026, 5, 1, 1, 1, 1), 'passenger_count': 2, 'trip_distance': 2.48, 'RatecodeID': 1, 'store_and_fwd_flag': 'N', 'PULocationID': 239, 'DOLocationID': 262, 'payment_type': 1, 'fare_amount': 17.0, 'extra': 1.0, 'mta_tax': 0.5, 'tip_amount': 3.3, 'tolls_amount': 0.0, 'improvement_surcharge': 1.0, 'total_amount': 25.3, 'congestion_surcharge': 2.5, 'Airport_fee': 0.0, 'cbd_congestion_fee': 0.0, 'trip_duration_min': 15.933333333333334, 'pickup_date': datetime.date(2026, 5, 1), 'pickup_hour': 0}]
+daily_summary:
++-----------+----------+--------------------+------------------+
+|pickup_date|trip_count|avg_trip_distance_mi|total_fare_amount |
++-----------+----------+--------------------+------------------+
+|2009-01-01 |1         |13.01               |79.3              |
+|2026-04-30 |11        |4.83                |266.80000000000007|
+|2026-05-01 |106235    |3.360807455170131   |2116432.0400000117|
+|2026-05-02 |101410    |3.0129726851395033  |1842322.1000000401|
+|2026-05-03 |85147     |3.8687817539079807  |1766678.2400000046|
+|2026-05-04 |87990     |3.7890268212296623  |1872669.6600000202|
+|2026-05-05 |103505    |3.305428626636364   |2049736.4700000188|
+|2026-05-06 |108161    |3.2414755780734716  |2165543.640000019 |
+|2026-05-07 |110245    |3.3457079232617644  |2250368.6200000383|
+|2026-05-08 |105584    |3.283721207758709   |2109017.56        |
+|2026-05-09 |98571     |2.989588925748968   |1803059.7600000245|
+|2026-05-10 |84881     |3.799559029700367   |1749125.7500000105|
+|2026-05-11 |95387     |3.7324676318575944  |2008813.2399999958|
+|2026-05-12 |108963    |3.2894148472417104  |2221187.759999976 |
+|2026-05-13 |112828    |3.2976204488247345  |2381477.8400000064|
+|2026-05-14 |120092    |3.387983962295552   |2523910.409999994 |
+|2026-05-15 |110003    |3.3769677190622085  |2293891.45        |
+|2026-05-16 |102828    |3.158092056638311   |2031323.700000003 |
+|2026-05-17 |88728     |3.8711783202596295  |1932679.6000000176|
+|2026-05-18 |95694     |3.7184270696177433  |2014802.4700000254|
+|2026-05-19 |109338    |3.230726645813881   |2222121.070000017 |
+|2026-05-20 |114745    |3.1848593838511445  |2342860.200000001 |
+|2026-05-21 |111374    |3.454586438486574   |2373477.920000029 |
+|2026-05-22 |89426     |3.555092925994655   |1789366.790000003 |
+|2026-05-23 |79081     |3.193066729049991   |1463631.7600000165|
+|2026-05-24 |64139     |3.6903425373017993  |1275170.9200000118|
+|2026-05-25 |57554     |4.33402005073499    |1256254.1900000097|
+|2026-05-26 |90981     |3.6325099746101026  |1871765.0900000103|
+|2026-05-27 |95747     |3.3835531139356894  |1848076.4900000133|
+|2026-05-28 |106536    |3.3788547533228224  |2152587.000000011 |
+|2026-05-29 |99999     |3.4047685476854768  |2013567.2300000247|
++-----------+----------+--------------------+------------------+
+only showing top 31 rows
+hourly_counts:
++-----------+----------+
+|pickup_hour|trip_count|
++-----------+----------+
+|0          |75801     |
+|1          |48846     |
+|2          |31726     |
+|3          |21099     |
+|4          |14913     |
+|5          |19662     |
+|6          |40729     |
+|7          |79750     |
+|8          |109682    |
+|9          |127802    |
+|10         |141507    |
+|11         |155008    |
+|12         |165976    |
+|13         |172527    |
+|14         |188798    |
+|15         |196124    |
+|16         |197298    |
+|17         |213495    |
+|18         |215728    |
+|19         |188284    |
+|20         |168014    |
+|21         |176973    |
+|22         |156793    |
+|23         |114884    |
++-----------+----------+
+
+borough_summary:
++--------------+----------+------------------+
+|pickup_borough|trip_count|avg_fare_amount   |
++--------------+----------+------------------+
+|Manhattan     |2636872   |16.15892665248826 |
+|Queens        |290575    |53.82405131205297 |
+|Brooklyn      |66200     |30.28788897280962 |
+|Bronx         |22684     |36.773353905836736|
+|Unknown       |4146      |26.659662325132683|
+|N/A           |738       |79.25062330623305 |
+|EWR           |112       |100.41169642857143|
+|Staten Island |92        |29.79489130434782 |
++--------------+----------+------------------+
+
+Enter를 누르면 종료합니다 (그 전에 http://localhost:4040 에서 DAG 확인)...

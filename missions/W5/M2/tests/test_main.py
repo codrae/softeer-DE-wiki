@@ -1,4 +1,3 @@
-from pathlib import Path
 from datetime import date, datetime
 
 import pytest
@@ -195,6 +194,18 @@ def test_compute_borough_summary_joins_on_pickup_location_and_groups_by_borough(
 
     assert result["Manhattan"] == (2, 15.0)
     assert result["Queens"] == (1, 5.0)
+
+
+def test_compute_borough_summary_uses_broadcast_join(spark):
+    cleaned = main.clean_trips(spark.createDataFrame([_trip_row(pu_location_id=100)], _TRIP_COLUMNS))
+    zone_lookup = spark.createDataFrame(
+        [(100, "Manhattan", "Zone A", "Yellow Zone")],
+        ["LocationID", "Borough", "Zone", "service_zone"],
+    )
+
+    plan = main.compute_borough_summary(cleaned, zone_lookup)._jdf.queryExecution().executedPlan().toString()
+
+    assert "BroadcastHashJoin" in plan
 
 
 def test_write_output_table_creates_parquet_and_csv(spark, tmp_path):

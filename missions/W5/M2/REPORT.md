@@ -22,25 +22,28 @@
 `run.log`에서 발췌:
 ```
 [action] raw row count = 4090836
-[action] cleaned row count = 3021419 (dropped 1069417)
-[action] cache materialized on cleaned_df
-[lazy] transformations defined at 1785379387.002 -- no Spark job has run for these DataFrames yet
+[action] cleaned row count = 3021419 (dropped 1069417); cache materialized in this same pass
+[lazy] transformations defined at 1785380876.203 -- no Spark job has run for these DataFrames yet
 [lazy] daily_summary_df physical plan (explain() does not trigger a job):
-[action] collect() called at 1785379387.016
-[action] collect() returned at 1785379387.069, 20 rows
-[action] write(daily_summary) called at 1785379387.069
-[action] write(daily_summary) finished at 1785379387.827
-[action] write(hourly_counts) called at 1785379387.827
-[action] write(hourly_counts) finished at 1785379388.195
-[action] write(borough_summary) called at 1785379388.195
-[action] write(borough_summary) finished at 1785379388.829
+[action] collect() called at 1785380876.219
+[action] collect() returned at 1785380876.276, 20 rows
+[action] write(daily_summary) called at 1785380876.276
+[action] write(daily_summary) finished at 1785380877.027
+[action] write(hourly_counts) called at 1785380877.027
+[action] write(hourly_counts) finished at 1785380877.342
+[action] write(borough_summary) called at 1785380877.342
+[action] write(borough_summary) finished at 1785380877.877
 ```
-변환(4번 단계) 코드는 위 로그의 `[lazy] transformations defined at 1785379387.002` 시점에 이미 다 작성되어
+변환(4번 단계) 코드는 위 로그의 `[lazy] transformations defined at 1785380876.203` 시점에 이미 다 작성되어
 있었지만, 그 시점까지 어떤 Spark 잡도 실행되지 않았다 — `daily_summary_df.explain(mode="extended")`가 물리적
 실행 계획(Parsed/Analyzed/Optimized/Physical Plan)을 출력하지만 이는 계획 확인일 뿐 잡을 트리거하지 않는다.
-실제 잡은 그 다음 줄의 `collect()` 호출(1785379387.016)에서야 처음 발생했고, 이어서 `write()` 3회가 순차
-실행됐다(마지막 borough_summary write가 1785379388.829에 종료). 즉 변환 정의 시점과 실제 실행 시점 사이에는
-약 14ms의 간극이 있으며, 이 간극 동안 아무 Spark job도 돌지 않았다는 것이 타임스탬프로 확인된다.
+실제 잡은 그 다음 줄의 `collect()` 호출(1785380876.219)에서야 처음 발생했고, 이어서 `write()` 3회가 순차
+실행됐다(마지막 borough_summary write가 1785380877.877에 종료). 즉 변환 정의 시점과 실제 실행 시점 사이에는
+약 16ms의 간극이 있으며, 이 간극 동안 아무 Spark job도 돌지 않았다는 것이 타임스탬프로 확인된다. 또한
+`[action] cleaned row count ...` 로그 한 줄에 "행 수 계산"과 "캐시 materialize"가 함께 표기된 것은,
+`clean_trips(trips_df).cache()`로 캐시를 먼저 걸고 그 다음 `count()`를 단 한 번만 호출해 캐싱과 카운트를
+같은 pass에서 끝냈기 때문이다(예전 코드는 캐시 이전에 한 번, 캐시 materialize를 위해 또 한 번, 총 두 번
+전체 데이터를 스캔했다).
 
 ## DAG 및 스테이지 최적화
 ![Spark UI DAG](report_assets/spark_ui_dag.png)
@@ -56,10 +59,28 @@
   파일로 쓰는 스테이지만 새로 실행됐다.
 
 Spark UI는 어떤 스테이지의 셔플 출력이 같은 세션의 이전 잡에서 이미 계산되어 있으면 그 스테이지를
-"skipped"로 표시한다. 즉 이 스크린샷은 `cleaned_df.cache()`가 실제로 효과를 내고 있다는 시각적 증거다 —
-비용이 큰 parquet 스캔 + 클리닝 필터(Stage 43)와 셔플 스테이지(Stage 44)가 이 write job에서 재실행되지
-않고, 최종 write 스테이지(45)만 새로 돌았다. 캐싱이 없었다면 daily_summary/hourly_counts/borough_summary
-3개의 write 잡마다 매번 parquet을 처음부터 다시 읽고 재파싱해야 했을 것이다.
+"skipped"로 표시한다. 이 스크린샷은 사실 **두 가지 서로 다른 최적화**가 겹쳐서 나타난 결과다.
+
+첫째, Stage 45는 `AQEShuffleRead` → `WholeStageCodegen (3)` → `Coalesce` → `WriteFiles`로 구성되는데,
+`Coalesce` 노드가 존재한다는 것은 이 스테이지가 `write_output_table`의 `df.coalesce(1).write...csv(...)`
+호출(CSV 출력)에 해당함을 의미한다(parquet 쪽 write에는 `coalesce(1)`이 없다). 같은 `write_output_table`
+호출 안에서 parquet write가 CSV write보다 밀리초 앞서 실행되며, 두 write는 동일한 결과 DataFrame을 쓰는
+"형제(sibling) 잡"이다. 따라서 Stage 43(parquet 스캔 + 클리닝 필터 계산)과 Stage 44(집계를 위한 셔플)가
+CSV write 잡에서 skipped로 뜨는 이유는, 바로 직전 parquet write 잡이 이미 동일한 셔플 맵 출력을 만들어
+뒀기 때문이다 — 즉 이것은 **셔플 출력 재사용(shuffle-output reuse)**이며, `cleaned_df.cache()`의 직접적인
+증거는 아니다.
+
+둘째, `cleaned_df.cache()`가 실제로 효과를 내고 있다는 증거는 같은 스크린샷의 **다른 신호**에서 확인된다.
+Stage 43 내부의 `InMemoryTableScan` 노드는 이 스테이지의 입력이 매번 parquet을 새로 읽는 대신 캐시된
+`InMemoryRelation`에서 온다는 것을 보여주며, 그 바로 위 `mapPartitionsInternal` 노드에는 초록색 캐시
+마커(cache marker)가 표시되어 있다(`report_assets/spark_ui_dag.png`에서 육안으로 확인 가능) — 이 마커는
+해당 노드의 출력이 캐시로부터 제공되고 있음을 Spark UI가 명시적으로 표시하는 신호다. 캐싱이 없었다면
+daily_summary/hourly_counts/borough_summary 3개 결과 테이블 각각의 parquet+CSV write 잡마다 매번 원본
+parquet을 처음부터 다시 읽고 클리닝 필터를 재계산해야 했을 것이다.
+
+정리하면, 이 스크린샷은 (1) 같은 `write_output_table` 호출 안에서 parquet write와 CSV write 사이의
+셔플 출력 재사용, 그리고 (2) 그 셔플 입력 자체가 `cleaned_df.cache()`를 통해 제공되고 있다는 것, 이렇게
+서로 다른 두 최적화를 함께 보여준다.
 
 Broadcast Join(별도 최적화 포인트, 위 스크린샷과는 무관): `compute_borough_summary`(`main.py`)는 zone
 lookup 테이블(약 265행의 작은 테이블)을 `F.broadcast(zone_lookup_df.select(...))`로 명시적으로 감싼 뒤
@@ -69,8 +90,8 @@ broadcast join은 작은 테이블을 각 executor에 통째로 복제해 보내
 
 ## 결과 요약
 - 일별 요약 (daily_summary): 클리닝된 3,021,419건 중 2026-05-01 ~ 2026-05-29 사이 일별 트립수는 약
-  57,554건(05-25, 최저)에서 120,092건(05-14, 최고) 사이로 분포하며, 일평균 매출은 대략 125만~252만 달러
-  수준이다. 다만 `daily_summary` 테이블에는 명백한 데이터 품질 이상치 2건이 섞여 있다: `2009-01-01`(1건)과
+  57,554건(05-25, 최저)에서 120,092건(05-14, 최고) 사이로 분포하며, 일별 총 매출은 약 125만~252만 달러
+  범위이다. 다만 `daily_summary` 테이블에는 명백한 데이터 품질 이상치 2건이 섞여 있다: `2009-01-01`(1건)과
   `2026-04-30`(11건)이다. 이는 원본 TLC parquet에 있던 잘못된 타임스탬프가 `clean_trips`의 필터(트립
   시간/거리/승객수/요금 임계값만 검사)를 통과해 남은 것으로, 파이프라인 버그라기보다는 원본 데이터의 알려진
   품질 이슈로 봐야 한다. (참고: `missions/W5/M1`의 RDD 버전은 날짜 범위를 명시적으로 검사해 이런 이상치를

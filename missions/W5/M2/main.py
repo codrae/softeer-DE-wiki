@@ -21,6 +21,7 @@ def download_zone_lookup(dest_path, url: str = ZONE_LOOKUP_URL, timeout: int = 6
     if response.status_code != 200:
         raise RuntimeError(f"Failed to download {url}: HTTP {response.status_code}")
     dest_path.write_bytes(response.content)
+
     return dest_path
 
 
@@ -117,13 +118,12 @@ def run_pipeline(spark: SparkSession, trips_path: str, zone_lookup_path: str, ou
     raw_count = trips_df.count()
     emit(f"[action] raw row count = {raw_count}")
 
-    cleaned_df = clean_trips(trips_df)
-    cleaned_count = cleaned_df.count()
-    emit(f"[action] cleaned row count = {cleaned_count} (dropped {raw_count - cleaned_count})")
-
-    cleaned_df = cleaned_df.cache()
-    cleaned_df.count()  # materialize the cache before it's reused below
-    emit("[action] cache materialized on cleaned_df")
+    cleaned_df = clean_trips(trips_df).cache()
+    cleaned_count = cleaned_df.count()  # single pass: computes the count AND materializes the cache
+    emit(
+        f"[action] cleaned row count = {cleaned_count} (dropped {raw_count - cleaned_count}); "
+        "cache materialized in this same pass"
+    )
 
     multi_passenger_df = filter_multi_passenger(cleaned_df)
     daily_summary_df = compute_daily_summary(cleaned_df)
