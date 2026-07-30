@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import requests
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, SparkSession, functions as F
 
 ZONE_LOOKUP_URL = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
 
@@ -29,3 +29,30 @@ def load_trips(spark: SparkSession, path: str) -> DataFrame:
 
 def load_zone_lookup(spark: SparkSession, path: str) -> DataFrame:
     return spark.read.option("header", True).option("inferSchema", True).csv(path)
+
+
+def clean_trips(df: DataFrame) -> DataFrame:
+    return (
+        df.dropna(subset=[
+            "tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count",
+            "trip_distance", "fare_amount", "PULocationID", "DOLocationID",
+        ])
+        .withColumn(
+            "trip_duration_min",
+            (
+                F.col("tpep_dropoff_datetime").cast("long")
+                - F.col("tpep_pickup_datetime").cast("long")
+            ) / 60.0,
+        )
+        .withColumn("pickup_date", F.to_date("tpep_pickup_datetime"))
+        .withColumn("pickup_hour", F.hour("tpep_pickup_datetime"))
+        .filter(
+            (F.col("trip_duration_min") > 0)
+            & (F.col("trip_duration_min") <= MAX_TRIP_DURATION_MIN)
+            & (F.col("trip_distance") > 0)
+            & (F.col("trip_distance") <= MAX_TRIP_DISTANCE_MI)
+            & (F.col("passenger_count") >= MIN_PASSENGER_COUNT)
+            & (F.col("passenger_count") <= MAX_PASSENGER_COUNT)
+            & (F.col("fare_amount") >= 0)
+        )
+    )
