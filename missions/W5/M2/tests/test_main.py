@@ -154,3 +154,24 @@ def test_compute_hourly_counts_groups_by_pickup_hour(spark):
     }
 
     assert result == {8: 2, 5: 1}
+
+
+def test_compute_borough_summary_joins_on_pickup_location_and_groups_by_borough(spark):
+    trip_rows = [
+        _trip_row(pu_location_id=100, fare_amount=10.0),
+        _trip_row(pu_location_id=100, fare_amount=20.0),
+        _trip_row(pu_location_id=200, fare_amount=5.0),
+    ]
+    cleaned = main.clean_trips(spark.createDataFrame(trip_rows, _TRIP_COLUMNS))
+    zone_lookup = spark.createDataFrame(
+        [(100, "Manhattan", "Zone A", "Yellow Zone"), (200, "Queens", "Zone B", "Boro Zone")],
+        ["LocationID", "Borough", "Zone", "service_zone"],
+    )
+
+    result = {
+        row["pickup_borough"]: (row["trip_count"], row["avg_fare_amount"])
+        for row in main.compute_borough_summary(cleaned, zone_lookup).collect()
+    }
+
+    assert result["Manhattan"] == (2, 15.0)
+    assert result["Queens"] == (1, 5.0)

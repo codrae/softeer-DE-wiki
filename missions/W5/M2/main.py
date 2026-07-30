@@ -81,3 +81,21 @@ def compute_hourly_counts(df: DataFrame) -> DataFrame:
         .withColumnRenamed("count", "trip_count")
         .orderBy("pickup_hour")
     )
+
+
+def compute_borough_summary(df: DataFrame, zone_lookup_df: DataFrame) -> DataFrame:
+    zone_broadcast = F.broadcast(
+        zone_lookup_df.select(
+            F.col("LocationID").alias("PULocationID"),
+            F.col("Borough").alias("pickup_borough"),
+        )
+    )
+    return (
+        df.join(zone_broadcast, on="PULocationID", how="inner")
+        .groupBy("pickup_borough")
+        .agg(
+            F.count(F.lit(1)).alias("trip_count"),
+            F.avg("fare_amount").alias("avg_fare_amount"),
+        )
+        .orderBy(F.col("trip_count").desc())
+    )
