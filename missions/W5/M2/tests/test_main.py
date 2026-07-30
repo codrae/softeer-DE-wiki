@@ -193,3 +193,38 @@ def test_write_output_table_creates_parquet_and_csv(spark, tmp_path):
     csv_files = list(csv_dir.glob("*.csv"))
     assert len(csv_files) == 1
     assert "trip_count,pickup_borough" in csv_files[0].read_text()
+
+
+def test_run_pipeline_executes_end_to_end(spark, tmp_path):
+    trip_rows = [
+        _trip_row(pickup=datetime(2024, 1, 1, 8, 0, 0), passenger_count=2, pu_location_id=100),
+        _trip_row(
+            pickup=datetime(2024, 1, 1, 9, 0, 0),
+            dropoff=datetime(2024, 1, 1, 9, 10, 0),
+            passenger_count=1,
+            pu_location_id=200,
+        ),
+        _trip_row(trip_distance=None),  # dropped by cleaning
+    ]
+    trips_path = tmp_path / "trips.parquet"
+    spark.createDataFrame(trip_rows, _TRIP_COLUMNS).write.parquet(str(trips_path), mode="overwrite")
+
+    zone_lookup_path = tmp_path / "zones.csv"
+    zone_lookup_path.write_text(
+        "LocationID,Borough,Zone,service_zone\n"
+        "100,Manhattan,Zone A,Yellow Zone\n"
+        "200,Queens,Zone B,Boro Zone\n"
+    )
+
+    output_dir = tmp_path / "output"
+
+    result = main.run_pipeline(spark, str(trips_path), str(zone_lookup_path), str(output_dir))
+
+    assert result["raw_count"] == 3
+    assert result["cleaned_count"] == 2
+    assert len(result["sample_rows"]) == 1  # only the passenger_count=2 row
+    assert any(entry.startswith("[lazy]") for entry in result["log"])
+    assert any(entry.startswith("[action]") for entry in result["log"])
+    assert (output_dir / "daily_summary").exists()
+    assert (output_dir / "hourly_counts").exists()
+    assert (output_dir / "borough_summary").exists()

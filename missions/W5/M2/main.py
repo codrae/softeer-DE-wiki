@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import requests
@@ -104,3 +105,60 @@ def compute_borough_summary(df: DataFrame, zone_lookup_df: DataFrame) -> DataFra
 def write_output_table(df: DataFrame, output_dir: str, name: str) -> None:
     df.write.mode("overwrite").parquet(f"{output_dir}/{name}")
     df.coalesce(1).write.mode("overwrite").option("header", True).csv(f"{output_dir}/{name}_csv")
+
+
+def run_pipeline(spark: SparkSession, trips_path: str, zone_lookup_path: str, output_dir: str) -> dict:
+    log = []
+
+    def emit(message: str) -> None:
+        log.append(message)
+        print(message)
+
+    trips_df = load_trips(spark, trips_path)
+    zone_df = load_zone_lookup(spark, zone_lookup_path)
+
+    raw_count = trips_df.count()
+    emit(f"[action] raw row count = {raw_count}")
+
+    cleaned_df = clean_trips(trips_df)
+    cleaned_count = cleaned_df.count()
+    emit(f"[action] cleaned row count = {cleaned_count} (dropped {raw_count - cleaned_count})")
+
+    cleaned_df = cleaned_df.cache()
+    cleaned_df.count()  # materialize the cache before it's reused below
+    emit("[action] cache materialized on cleaned_df")
+
+    multi_passenger_df = filter_multi_passenger(cleaned_df)
+    daily_summary_df = compute_daily_summary(cleaned_df)
+    hourly_counts_df = compute_hourly_counts(cleaned_df)
+    borough_summary_df = compute_borough_summary(cleaned_df, zone_df)
+
+    emit(
+        f"[lazy] transformations defined at {time.time():.3f} "
+        "-- no Spark job has run for these DataFrames yet"
+    )
+    emit("[lazy] daily_summary_df physical plan (explain() does not trigger a job):")
+    daily_summary_df.explain(mode="extended")
+
+    emit(f"[action] collect() called at {time.time():.3f}")
+    sample_rows = [row.asDict() for row in multi_passenger_df.limit(20).collect()]
+    emit(f"[action] collect() returned at {time.time():.3f}, {len(sample_rows)} rows")
+
+    for name, result_df in [
+        ("daily_summary", daily_summary_df),
+        ("hourly_counts", hourly_counts_df),
+        ("borough_summary", borough_summary_df),
+    ]:
+        emit(f"[action] write({name}) called at {time.time():.3f}")
+        write_output_table(result_df, output_dir, name)
+        emit(f"[action] write({name}) finished at {time.time():.3f}")
+
+    return {
+        "raw_count": raw_count,
+        "cleaned_count": cleaned_count,
+        "sample_rows": sample_rows,
+        "daily_summary": daily_summary_df,
+        "hourly_counts": hourly_counts_df,
+        "borough_summary": borough_summary_df,
+        "log": log,
+    }
