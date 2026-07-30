@@ -40,10 +40,7 @@ def clean_trips(df: DataFrame) -> DataFrame:
         ])
         .withColumn(
             "trip_duration_min",
-            (
-                F.col("tpep_dropoff_datetime").cast("long")
-                - F.col("tpep_pickup_datetime").cast("long")
-            ) / 60.0,
+            (F.unix_timestamp("tpep_dropoff_datetime") - F.unix_timestamp("tpep_pickup_datetime")) / 60.0,
         )
         .withColumn("pickup_date", F.to_date("tpep_pickup_datetime"))
         .withColumn("pickup_hour", F.hour("tpep_pickup_datetime"))

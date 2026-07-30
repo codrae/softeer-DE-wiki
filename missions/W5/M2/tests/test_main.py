@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import date, datetime
 
 import pytest
+from pyspark.sql.types import StructType, StructField, TimestampNTZType, LongType, DoubleType, IntegerType
 
 import main
 
@@ -109,6 +110,25 @@ def test_clean_trips_filters_invalid_rows_and_adds_derived_columns(spark):
     assert abs(row["trip_duration_min"] - 10.0) < 1e-6
     assert row["pickup_date"] == date(2024, 1, 1)
     assert row["pickup_hour"] == 8
+
+
+def test_clean_trips_handles_timestamp_ntz_columns(spark):
+    schema = StructType([
+        StructField("tpep_pickup_datetime", TimestampNTZType()),
+        StructField("tpep_dropoff_datetime", TimestampNTZType()),
+        StructField("passenger_count", LongType()),
+        StructField("trip_distance", DoubleType()),
+        StructField("fare_amount", DoubleType()),
+        StructField("PULocationID", IntegerType()),
+        StructField("DOLocationID", IntegerType()),
+    ])
+    row = _trip_row()
+    df = spark.createDataFrame([row], schema)
+
+    result = main.clean_trips(df).collect()
+
+    assert len(result) == 1
+    assert abs(result[0]["trip_duration_min"] - 10.0) < 1e-6
 
 
 def test_filter_multi_passenger_keeps_only_more_than_one_rider(spark):
