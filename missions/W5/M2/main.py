@@ -60,3 +60,24 @@ def clean_trips(df: DataFrame) -> DataFrame:
 
 def filter_multi_passenger(df: DataFrame) -> DataFrame:
     return df.filter(F.col("passenger_count") > 1)
+
+
+def compute_daily_summary(df: DataFrame) -> DataFrame:
+    return (
+        df.groupBy("pickup_date")
+        .agg(
+            F.count(F.lit(1)).alias("trip_count"),
+            F.avg("trip_distance").alias("avg_trip_distance_mi"),
+            F.sum("fare_amount").alias("total_fare_amount"),
+        )
+        .orderBy("pickup_date")
+    )
+
+
+def compute_hourly_counts(df: DataFrame) -> DataFrame:
+    return (
+        df.groupBy("pickup_hour")
+        .count()
+        .withColumnRenamed("count", "trip_count")
+        .orderBy("pickup_hour")
+    )

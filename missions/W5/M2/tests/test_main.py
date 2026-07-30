@@ -122,3 +122,35 @@ def test_filter_multi_passenger_keeps_only_more_than_one_rider(spark):
     result = main.filter_multi_passenger(cleaned).collect()
 
     assert sorted(row["passenger_count"] for row in result) == [2, 3]
+
+
+def _cleaned_sample(spark):
+    rows = [
+        _trip_row(pickup=datetime(2024, 1, 1, 8, 0, 0), dropoff=datetime(2024, 1, 1, 8, 10, 0), trip_distance=2.0, fare_amount=10.0),
+        _trip_row(pickup=datetime(2024, 1, 1, 8, 30, 0), dropoff=datetime(2024, 1, 1, 8, 40, 0), trip_distance=4.0, fare_amount=10.0),
+        _trip_row(pickup=datetime(2024, 1, 2, 5, 0, 0), dropoff=datetime(2024, 1, 2, 5, 10, 0), trip_distance=3.0, fare_amount=10.0),
+    ]
+    return main.clean_trips(spark.createDataFrame(rows, _TRIP_COLUMNS))
+
+
+def test_compute_daily_summary_groups_by_pickup_date(spark):
+    cleaned = _cleaned_sample(spark)
+
+    result = {
+        row["pickup_date"]: (row["trip_count"], row["avg_trip_distance_mi"], row["total_fare_amount"])
+        for row in main.compute_daily_summary(cleaned).collect()
+    }
+
+    assert result[date(2024, 1, 1)] == (2, 3.0, 20.0)
+    assert result[date(2024, 1, 2)] == (1, 3.0, 10.0)
+
+
+def test_compute_hourly_counts_groups_by_pickup_hour(spark):
+    cleaned = _cleaned_sample(spark)
+
+    result = {
+        row["pickup_hour"]: row["trip_count"]
+        for row in main.compute_hourly_counts(cleaned).collect()
+    }
+
+    assert result == {8: 2, 5: 1}
