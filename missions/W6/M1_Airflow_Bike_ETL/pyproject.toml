@@ -1,0 +1,9 @@
+[project]
+name = "seoul-bike-etl"
+version = "0.1.0"
+description = "Seoul public bike 2-day station usage ETL for Airflow"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
