@@ -81,6 +81,7 @@ docker compose exec airflow-scheduler airflow dags trigger seoul_bike_period_usa
 ## 6. 최종 결과 조회
 
 ```bash
+source .env
 docker compose exec mysql mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
   < sql/final_result.sql
 ```
