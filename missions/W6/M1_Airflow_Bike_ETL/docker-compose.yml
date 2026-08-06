@@ -7,6 +7,8 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-api-server:8080/execution/"
+    AIRFLOW__API_AUTH__JWT_SECRET: "63c787e634d712ee72ea8c5daa2a342262a7316f4599aa55335b4769143cdf52"
     PYTHONPATH: /opt/airflow/src
     SEOUL_API_KEY: ${SEOUL_API_KEY}
     SEOUL_BIKE_DATA_DIR: /opt/airflow/data
