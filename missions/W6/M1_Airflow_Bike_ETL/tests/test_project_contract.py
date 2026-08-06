@@ -41,6 +41,9 @@ def test_cleaner_rejects_missing_and_negative_values():
     assert len(accepted) == 1
     assert len(rejected) == 2
     assert all("reason" in row for row in rejected)
+    assert set(accepted[0].keys()) == {
+        "RENT_STATN_ID", "RENT_STATN_NM", "USE_CNT", "MOVE_METER", "MOVE_TIME"
+    }
 
 
 def test_aggregator_returns_contracted_columns():

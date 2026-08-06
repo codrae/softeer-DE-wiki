@@ -37,6 +37,7 @@ with DAG(
     start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
     schedule=None,
     catchup=False,
+    max_active_runs=1,
     default_args=default_args,
     params={
         "start_date": Param("2026-06-27", type="string", format="date"),
@@ -107,6 +108,13 @@ with DAG(
             summary["date"]: json.loads(config.processed_path(summary["date"]).read_text(encoding="utf-8"))
             for summary in clean_summaries
         }
+
+        dates_in_period = sorted(records_by_date.keys())
+        if len(dates_in_period) != 2:
+            raise AirflowException(
+                f"이 파이프라인은 정확히 2일 기간만 지원합니다 (요청된 날짜: {dates_in_period})"
+            )
+
         aggregated = aggregate(records_by_date, start_date, end_date)
 
         duplicates = check_duplicate_station_ids(aggregated)

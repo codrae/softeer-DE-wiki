@@ -37,8 +37,13 @@ docker compose up --build -d
 
 DAG `seoul_bike_period_usage`를 Airflow UI에서 Unpause 후 "Trigger DAG"로 실행합니다.
 기본 파라미터(`start_date=2026-06-27`, `end_date=2026-06-28`)만으로 두 날짜가 하나의
-DAG run에서 모두 처리됩니다. 다른 기간을 돌리고 싶다면 "Trigger DAG w/ config"에서
-`start_date`/`end_date`를 바꿔서 트리거하면 됩니다.
+DAG run에서 모두 처리됩니다.
+
+이 파이프라인은 **정확히 연속된 2일(`end_date`가 `start_date`의 다음 날)로 이루어진
+기간만** 지원합니다. "Trigger DAG w/ config"에서 `start_date`/`end_date`를 바꿔 다른
+연속된 2일을 돌릴 수는 있지만, `start_date == end_date`(같은 날짜)이거나 3일 이상
+걸치는 범위(예: `start_date`와 `end_date`가 2일 이상 떨어짐)는 지원하지 않으며,
+`aggregate` task가 즉시 `AirflowException`을 발생시키며 명확히 실패합니다.
 
 CLI로 트리거하려면:
 
@@ -48,13 +53,17 @@ docker compose exec airflow-scheduler airflow dags trigger seoul_bike_period_usa
 
 ## 3. 데이터 클렌징 규칙
 
+원본 API는 스테이션 식별/명칭 필드를 `RENT_ID`/`RENT_NM`으로 반환합니다. `cleaner.py`가
+이 두 필드를 검증한 뒤 내부 계약 필드명인 `RENT_STATN_ID`/`RENT_STATN_NM`으로 번역하며,
+이후 단계(aggregator, MySQL 적재 등)는 항상 `RENT_STATN_ID`/`RENT_STATN_NM`을 사용합니다.
+
 다음 조건에 해당하는 행은 **전부 제외**하고, 제외된 행은 사유(`reason`)와 함께
 `data/rejected/{date}.json`에 별도 저장합니다.
 
-| 사유(`reason`) | 조건 |
+| 사유(`reason`) | 조건(원본 API 필드 기준) |
 |---|---|
-| `missing_station_id` | `RENT_STATN_ID`가 null 또는 빈 문자열 |
-| `missing_station_name` | `RENT_STATN_NM`이 null 또는 빈 문자열 |
+| `missing_station_id` | `RENT_ID`가 null 또는 빈 문자열 |
+| `missing_station_name` | `RENT_NM`이 null 또는 빈 문자열 |
 | `non_numeric_use_cnt` / `non_numeric_move_meter` / `non_numeric_move_time` | 해당 컬럼이 숫자로 변환 불가 |
 | `negative_use_cnt` / `negative_move_meter` / `negative_move_time` | 해당 컬럼 값이 음수 |
 
