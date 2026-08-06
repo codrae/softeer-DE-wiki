@@ -101,3 +101,11 @@ docker compose exec mysql mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATA
 pip install -r requirements-dev.txt -r requirements.txt
 pytest tests/ -v
 ```
+
+## 8. DAG 성공 실행 스크린샷
+
+실제 서울 열린데이터광장 API 키로 2026-06-27~2026-06-28 기간을 실행한 결과입니다. 모든 태스크
+(`create_table`, `build_date_list`, `extract_day`×2, `clean_day`×2, `aggregate`, `load_to_mysql`)가
+성공(초록색)했고, 최종적으로 2,738개 스테이션이 중복 없이 적재되었습니다.
+
+![Airflow DAG 성공 실행 화면](screenshots/dag_success.png)
