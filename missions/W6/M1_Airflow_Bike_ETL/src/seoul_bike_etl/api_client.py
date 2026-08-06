@@ -57,7 +57,7 @@ def _request_page(url: str) -> dict:
 
 def _extract_page(payload: dict) -> tuple[list[dict], int]:
     """API 응답 payload에서 (해당 페이지 row 리스트, list_total_count)를 추출한다."""
-    body = payload.get(config.API_SERVICE_NAME)
+    body = payload.get(config.API_RESPONSE_ROOT_KEY)
     if body is None:
         raise SeoulApiError(f"예상하지 못한 응답 형식(최상위 키 없음): {list(payload.keys())}")
 

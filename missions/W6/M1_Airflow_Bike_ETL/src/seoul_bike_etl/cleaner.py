@@ -1,9 +1,12 @@
 """Row-level cleaning rules for Seoul bike usage records.
 
 정제 규칙 (팀 합의: 결측치/이상치는 모두 제외):
-- RENT_STATN_ID, RENT_STATN_NM 결측(null/빈 문자열)
+- RENT_ID, RENT_NM(원본 API 필드명) 결측(null/빈 문자열)
 - USE_CNT, MOVE_METER, MOVE_TIME 숫자 변환 실패
 - 위 세 수치 중 하나라도 음수
+
+원본 API 필드명(RENT_ID/RENT_NM)은 내부 계약 필드명(RENT_STATN_ID/RENT_STATN_NM)으로
+이 함수에서 변환되어 이후 단계(aggregator 등)에는 항상 RENT_STATN_ID/RENT_STATN_NM으로 전달된다.
 """
 from __future__ import annotations
 
@@ -28,9 +31,9 @@ def clean_record(record: dict) -> tuple[dict | None, dict | None]:
         (cleaned_record, None) — 정상 레코드
         (None, rejected_record_with_reason) — 제외된 레코드 (원본 + 'reason' 필드)
     """
-    if _is_missing(record.get("RENT_STATN_ID")):
+    if _is_missing(record.get("RENT_ID")):
         return None, {**record, "reason": "missing_station_id"}
-    if _is_missing(record.get("RENT_STATN_NM")):
+    if _is_missing(record.get("RENT_NM")):
         return None, {**record, "reason": "missing_station_name"}
 
     numeric_values = {}
@@ -43,8 +46,8 @@ def clean_record(record: dict) -> tuple[dict | None, dict | None]:
         numeric_values[col] = value
 
     cleaned = {
-        "RENT_STATN_ID": str(record["RENT_STATN_ID"]),
-        "RENT_STATN_NM": str(record["RENT_STATN_NM"]),
+        "RENT_STATN_ID": str(record["RENT_ID"]),
+        "RENT_STATN_NM": str(record["RENT_NM"]),
         **numeric_values,
     }
     return cleaned, None

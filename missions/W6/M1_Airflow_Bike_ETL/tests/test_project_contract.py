@@ -33,9 +33,9 @@ def test_cleaner_rejects_missing_and_negative_values():
     from seoul_bike_etl.cleaner import clean_records
 
     records = [
-        {"RENT_STATN_ID": "ST-1", "RENT_STATN_NM": "A", "USE_CNT": "3", "MOVE_METER": "100", "MOVE_TIME": "20"},
-        {"RENT_STATN_ID": None, "RENT_STATN_NM": "B", "USE_CNT": "1", "MOVE_METER": "10", "MOVE_TIME": "5"},
-        {"RENT_STATN_ID": "ST-2", "RENT_STATN_NM": "C", "USE_CNT": "-1", "MOVE_METER": "10", "MOVE_TIME": "5"},
+        {"RENT_ID": "ST-1", "RENT_NM": "A", "USE_CNT": "3", "MOVE_METER": "100", "MOVE_TIME": "20"},
+        {"RENT_ID": None, "RENT_NM": "B", "USE_CNT": "1", "MOVE_METER": "10", "MOVE_TIME": "5"},
+        {"RENT_ID": "ST-2", "RENT_NM": "C", "USE_CNT": "-1", "MOVE_METER": "10", "MOVE_TIME": "5"},
     ]
     accepted, rejected = clean_records(records)
     assert len(accepted) == 1

@@ -8,12 +8,15 @@ from pathlib import Path
 # --- Seoul Open API ---
 API_BASE_URL = "http://openapi.seoul.go.kr:8088"
 API_SERVICE_NAME = "tbCycleRentUseDayInfo"
+# 실제 API 응답의 최상위 키는 URL 서비스명과 다르게 "tb" 접두사가 빠진
+# lower camelCase("cycleRentUseDayInfo")로 내려온다. (Task 11 실제 API 연동 검증 중 확인)
+API_RESPONSE_ROOT_KEY = "cycleRentUseDayInfo"
 PAGE_SIZE = 1000
 RETRY_BACKOFF_SECONDS = [2, 4, 8]
 REQUEST_TIMEOUT_SECONDS = 30
 
 # API가 각 row에 포함해야 하는 필수 컬럼과, 그중 숫자 변환/음수 검사가 필요한 컬럼.
-REQUIRED_COLUMNS = ["RENT_STATN_ID", "RENT_STATN_NM", "USE_CNT", "MOVE_METER", "MOVE_TIME"]
+REQUIRED_COLUMNS = ["RENT_ID", "RENT_NM", "USE_CNT", "MOVE_METER", "MOVE_TIME"]
 NUMERIC_COLUMNS = ["USE_CNT", "MOVE_METER", "MOVE_TIME"]
 
 # --- 데이터 품질 임계치 ---
