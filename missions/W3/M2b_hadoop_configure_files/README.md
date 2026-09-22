@@ -172,3 +172,39 @@ python3 verify_config.py
 ## 팀 활동
 
 4개 XML 파일의 프로퍼티를 각자 분담하여 조사한 뒤, 위키에 정리한다. (분담 및 정리 내용은 팀 위키 별도 문서 참고)
+
+---
+
+## 3주차 리뷰 피드백
+
+미션 리뷰에서 나온 설정 관련 Q&A를 정리한다.
+
+### `hadoop.tmp.dir`은 Hadoop 1.x → 2.x에서 어떻게 바뀌었나
+
+`hadoop.tmp.dir`은 Hadoop 1.x 시절 거의 모든 임시 파일(HDFS 메타데이터, MR 중간 파일 등)의
+기본 루트 디렉토리였고, YARN 도입 이후 그 역할이 목적별로 세분화됐다.
+
+- **Hadoop 1.x**: `JobTracker`가 잡을 스케줄링하고 `TaskTracker`가 각 노드에서 map/reduce
+  task를 직접 실행했다. task의 중간 산출물(spill file, shuffle 데이터 등)이
+  `hadoop.tmp.dir` 하위에 저장됐다.
+- **YARN (2.x~)**: 리소스 관리와 애플리케이션 실행이 분리되면서 `ResourceManager`가 클러스터
+  리소스를 관장하고 `NodeManager`가 각 노드에서 **컨테이너** 단위로 애플리케이션(MR뿐 아니라
+  Spark 등 무엇이든)을 실행한다. 더 이상 "MapReduce 전용 임시 디렉토리"가 아니라
+  **범용 컨테이너 임시 디렉토리**가 필요해졌고, 그것이 `yarn.nodemanager.local-dirs`다.
+  → 이에 따라 Docker Volume 설정도 함께 필요해진다.
+
+### `mapreduce.job.tracker = namenode:9001` 같은 변경은 적용되나
+
+적용되지 않는다. 이 프로퍼티는 **YARN 도입 이전의 Hadoop 1.x 설정**이다. Hadoop 2.x 이후
+YARN 기반 구성에서는 아무런 효과가 없으며, JobTracker는 **ResourceManager + ApplicationMaster**로
+대체되었다.
+
+### `mapreduce.jobhistory.address = namenode:1200` 같은 요청이 오면 무엇을 확인해야 하나
+
+해당 포트를 이미 사용 중인 프로세스가 없는지, 그리고 JobHistoryServer를 켰는지 /
+실제로 돌아가고 있는지를 확인해야 한다.
+
+### `ENV HDFS_NAMENODE_USER = root`에 대하여
+
+Dockerfile에 이런 설정이 있다면 반성할 지점이다. HDFS 관련 권한을 가진 **User를 별도로
+설계하고, 해당 유저로 switch하여 작업**해야 한다.
