@@ -4,6 +4,46 @@
 단일 Airflow DAG run에서 수집·정제·집계하여 MySQL `station_period_usage` 테이블에
 멱등적으로 적재하는 파이프라인입니다.
 
+## 미션 요구사항
+
+원 미션: **W6M1 - Building an Idempotent ETL Pipeline using Airflow** (난이도 최상)
+
+### 학습 목표
+- Apache Airflow로 **멱등적(idempotent)** ETL 파이프라인을 구축한다.
+- 서울 공공자전거 2일치 데이터를 수집·처리한다.
+- 스테이션 단위 사용량 요약을 산출·저장한다.
+
+### 기능 요구사항
+- 서울 공공자전거 일별 이용정보 API `tbCycleRentUseDayInfo` 사용
+- 2026-06-27, 2026-06-28의 **모든 레코드를 페이지네이션 응답까지 포함해** 수집
+- 두 날짜를 **하나의 Airflow DAG run에서** 처리
+- 정제 후 2일 기간에 대해 스테이션 단위로 집계
+- MySQL `station_period_usage` 테이블에 저장. 스테이션당 1행이며 컬럼은
+  `period_start_date`, `period_end_date`, `station_id`, `station_name`,
+  `total_usage_count`(USE_CNT 합), `total_distance_m`(MOVE_METER 합),
+  `total_duration_min`(MOVE_TIME 합)
+
+### 프로그래밍 요구사항
+- 수집/변환/집계/적재를 Airflow DAG으로 구현
+- Docker 필수 — Airflow와 MySQL을 Docker Compose로 실행
+- API 페이지네이션, HTTP 에러, 타임아웃, 일시적 네트워크 장애를 **재시도**로 처리
+- 같은 기간을 재실행해도 중간/최종 데이터가 충돌하거나 중복되지 않을 것
+- 필수값 누락·숫자 변환 실패·음수 값 행의 처리 방식을 정의하고,
+  **제외되거나 별도 저장된 행의 수를 로깅**할 것
+- 수집 데이터와 최종 집계 결과에 대해 기본적인 데이터 품질 체크 수행
+- Task 실패와 관련 에러를 로깅
+
+### 제출물
+소스코드와 환경 설정 / 설치·실행·데이터 정제 규칙을 담은 README /
+Airflow DAG 성공 실행 스크린샷 / 최종 결과를 보여주는 SQL 쿼리와 출력
+
+### 참고 자료
+[Running Airflow in Docker](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html) ·
+[DAG Runs and Data Intervals](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dag-run.html) ·
+[Airflow Best Practices](https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html) ·
+[서울 열린데이터광장 Open API 이용안내](https://data.seoul.go.kr/together/guide/useGuide.do) ·
+[서울시 공공자전거 따릉이 이용정보(일별)](https://data.seoul.go.kr/dataList/OA-15246/A/1/datasetView.do)
+
 ## 폴더 구조
 
 - `dags/seoul_bike_period_usage.py` — Airflow DAG 정의
